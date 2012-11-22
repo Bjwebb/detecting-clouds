@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    img {
+        display: none;
+    }
+    #pic0 {
+        display: block;
+    }
+</style>
+<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+<script> 
+    n = null;
+    i = 0;
+    imgs = null;
+    function tick() {
+        imgs.eq(i).hide();        
+        i++;
+        if (i>= n) i=0;
+        imgs.eq(i).show();
+        setTimeout(tick, 200);
+    }
+    $(window).load(function() {
+        imgs = $('img');
+        n = imgs.length;
+        setTimeout(tick, 200);
+    });
+</script>
+</head>
+<body>

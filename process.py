@@ -12,7 +12,7 @@ def flatten_max(max):
 def output(path, data, filter=False, image=False, extract=True):
     if filter:
         filtered_file = os.path.join('filtered',path)
-        pyfits.writeto(filtered_file, data)
+        pyfits.writeto(filtered_file, data) # clobber=True ?
         if extract:
             extfile = os.path.join('filtered','extracted',path) 
             subprocess.call(['sextractor','-c','test.sex',filtered_file])
@@ -37,10 +37,15 @@ def process_night(orig_path, night_path, filter=True, image=True, do_output=True
         if not name.endswith('.fits'):
             continue
         fname = os.path.join(orig_path, night_path, name)
-        header = pyfits.getheader(fname)
-        data = pyfits.getdata(fname, 0)
-
-
+        hdulist = pyfits.open(fname, do_not_scale_image_data=True)
+        hdu = hdulist[0] 
+        data = hdu.data
+        # Scale the image manually in order to use integers, not floats
+        if 'BSCALE' in hdu.header and 'BZERO' in hdu.header:
+            assert(hdu.header['BSCALE'] == 1)
+            bzero = hdu.header['BZERO']
+            data = numpy.vectorize(lambda x: x+bzero)(data)
+        
         if do_diff:
             if prevdata is not None:
                 if filter:
@@ -88,7 +93,7 @@ def generate_sum(orig_path):
                 def days(d):
                     return day + float(d[8:10])/24 + float(d[10:12])/(24*60)
                 def do_sum(name, data):
-                    print days(name[:-5]), sum(sum(data))
+                    print days(name[:-5]), numpy.sum(data, dtype=numpy.int64)
                 process_night(orig_path,
                               os.path.join(year,month,night),
                               image=False,
@@ -104,10 +109,7 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'out':
         generate_out('www.mrao.cam.ac.uk/~dfb/allsky')
     elif sys.argv[1] == 'sum':
-        generate_sum('www.mrao.cam.ac.uk/~dfb/allsky')
-
-"""
-
-orig_path = 'filtered'
-
-"""
+        if len(sys.argv) > 2:
+            generate_sum(sys.argv[2])
+        else:
+            generate_sum('www.mrao.cam.ac.uk/~dfb/allsky')

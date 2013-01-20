@@ -2,9 +2,6 @@
 <html>
 <head>
 <style>
-    img {
-        display: none;
-    }
     #pic0 {
         display: block;
     }
@@ -14,18 +11,35 @@
     n = null;
     i = 0;
     imgs = null;
+    go = true;
     function tick() {
-        imgs.eq(i).hide();        
+        if (!go) return;
+        next();
+        setTimeout(tick, 200);
+    }
+    function next() {
+        imgs.hide();        
         i++;
         if (i>= n) i=0;
         imgs.eq(i).show();
-        setTimeout(tick, 200);
+    }
+    function prev() {
+        imgs.hide();        
+        i--;
+        if (i < 0) i=n-1;
+        imgs.eq(i).show();
     }
     $(window).load(function() {
         imgs = $('img');
         n = imgs.length;
-        setTimeout(tick, 200);
     });
 </script>
 </head>
 <body>
+<p>
+    <a href="javascript:go=true;tick()">Start</a>
+    <a href="javascript:go=false">Stop</a>
+    <a href="javascript:prev()">Previous</a>
+    <a href="javascript:next()">Next</a>
+    <a href="javascript:imgs.show()">Show All</a>
+</p>

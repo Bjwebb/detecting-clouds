@@ -39,15 +39,15 @@ def flatten_max(max):
 
 def output(path, name, data, do_filter=False, image=False, extract=True, outdir='out', image_filter=flatten_max(5000)):
     if do_filter:
-        do_filtered_file = join(outdir, 'fits_filtered',path, name+'.fits')
-        if os.path.isfile(do_filtered_file):
-            os.remove(do_filtered_file)
-        pyfits.writeto(do_filtered_file, data) 
+        filtered_file = join(outdir, 'fits_filtered',path, name+'.fits')
+        if os.path.isfile(filtered_file):
+            os.remove(filtered_file)
+        pyfits.writeto(filtered_file, data) 
 
         if extract:
             extfile = join(outdir, 'fits_filtered','extracted',path, name+'.fits')
             with open(os.devnull) as shutup:
-                subprocess.call(['sextractor','-c','test.sex',do_filtered_file], stdout=shutup, stderr=shutup)
+                subprocess.call(['sextractor','-c','test.sex',filtered_file], stdout=shutup, stderr=shutup)
             shutil.move('check.fits', extfile)
             shutil.move('test.cat', join(outdir, 'cat', path, name+'.cat')) 
             output(os.path.join('extracted',path),
@@ -92,8 +92,12 @@ def process_night(orig_path,
         # Scale the image manually in order to use integers, not floats
         if 'BSCALE' in hdu.header and 'BZERO' in hdu.header:
             assert(hdu.header['BSCALE'] == 1)
-            bzero = hdu.header['BZERO']
+            # Cast to ensure data is int32s
+            # Otherwise it would depend on architecture, and
+            # sextractor does not like 64 bit fits files.
+            bzero = numpy.int32(hdu.header['BZERO'])
             data = numpy.vectorize(lambda x: x+bzero)(data)
+        
         if do_diff:
             if prevdata is not None:
                 if do_filter:
@@ -114,8 +118,8 @@ def process_night(orig_path,
             extraf(name, data)
         if do_output:
             # FIXME
-            pass
-            #output(out_path, out_name, data, do_filter, image, True, outdir)
+            # pass
+            output(out_path, out_name, data, do_filter, image, True, outdir)
     if total and night:
         try:
             tdata = reduce(add, night)
@@ -138,8 +142,8 @@ def generate_out(orig_path, outdir='out', use_path=False):
                       files,
                       do_diff=False,
                       outdir=outdir,
-                      out_path=out_path,
-                      total=True) # FIXME
+                      out_path=out_path)
+                      #total=True) # FIXME
 
 def generate_sum(orig_path):
     day = 0

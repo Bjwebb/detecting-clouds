@@ -1,20 +1,23 @@
-import numpy
-import os
+import numpy, pandas
+import os, datetime, math
+import subprocess
 from PIL import Image, ImageDraw
-import pandas
-import math
 from itertools import izip_longest
-import json
 
 catdir = os.path.join('out', 'cat', 'sid')
 
-from process import join, get_subdir
+from process import join, get_subdir, path_split
 
+from django.core.management import setup_environ
+import clouds.settings
+setup_environ(clouds.settings)
+from clouds.models import SidPoint, Line, SidTime 
+os.remove('db.sqlite')
+subprocess.call(['python','manage.py','syncdb'])
 
 prev_points_list = []
-prev_lines_dict_list = []
-lines = []
 steps = 0
+points_django = []
 for (path, subdirs, files) in os.walk(catdir):
     subdirs.sort()
     files.sort()
@@ -25,6 +28,9 @@ for (path, subdirs, files) in os.walk(catdir):
         if fname != 'total.cat': #FIXME
             continue
         print path
+        dirs = path_split(path)
+        sidtime = SidTime(time=datetime.time(int(dirs[-2]), int(dirs[-1])))
+        sidtime.save()
 
         df = pandas.read_csv(os.path.join(path, fname), delim_whitespace=True, comment='#', header=None, skiprows=12)
 
@@ -34,33 +40,34 @@ for (path, subdirs, files) in os.walk(catdir):
 
         points = pandas.DataFrame({ 'x': df[9], 'y': df[10], 'f': df[3] })
 
-        lines_dict = {}
+
         for i, point in points.iterrows():
             matched = False
-            for prev_points, prev_lines_dict in zip(prev_points_list, prev_lines_dict_list):
+            for prev_sidtime, prev_points in prev_points_list:
                 distances = ((prev_points-point)**2).sum(1)
                 if distances.min() < 3**2:
                     idx = distances.idxmin()
                     try:
-                        lines_dict[i] = prev_lines_dict[idx]
-                        lines_dict[i].append(dict(point))
-                        del prev_lines_dict[idx]
+                        line = SidPoint.objects.get(sidtime=prev_sidtime, idx=idx).line
                         matched = True
                     except KeyError:
                         pass
             if not matched:
-                lines_dict[i] = [ None ] * steps + [ dict(point) ]
-                lines.append(lines_dict[i])
+                line = Line()
+                line.save()
+            points_django.append( SidPoint(x=point['x'], y=point['y'], flux=point['f'], line=line, idx=i, sidtime=sidtime) )
+        #    if len(points_django) > 1000: # Avoid sqlite variable limit
+        SidPoint.objects.bulk_create(points_django)
+        points_django = []
 
-        prev_points_list.insert(0, points)
-        prev_lines_dict_list.insert(0, lines_dict)
+        prev_points_list.insert(0, (sidtime, points))
         if len(prev_points_list) > 4:
             prev_points_list.pop()
-            prev_lines_dict_list.pop()
         steps += 1
 
     #if steps > 10:
     #    break
+SidPoint.objects.bulk_create(points_django)
 
 """
 im = Image.new('RGB', (640,480), 'white')
@@ -97,4 +104,3 @@ for i, points in enumerate(izip_longest(*lines)):
     prev_points = points
 """
 
-json.dump(lines, open(os.path.join('out', 'lines.json'), 'w')) 

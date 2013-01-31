@@ -1,0 +1,9 @@
+Maybe get some proper commandline argument handling
+Use temporary files properly
+FIXME fix hardcoded params
+(lb) Beware final sidtime minute etc.
+(lb) Sort out them smudges
+Deal with float BSCALE in a nicer way
+
+Try actually summing all picked up intensities, RE: plan
+

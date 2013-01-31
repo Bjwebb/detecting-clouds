@@ -44,21 +44,37 @@ for (path, subdirs, files) in os.walk(catdir):
         for i, point in points.iterrows():
             matched = False
             for prev_sidtime, prev_points in prev_points_list:
-                distances = ((prev_points-point)**2).sum(1)
-                if distances.min() < 3**2:
+                dsquared = (prev_points-point)**2
+                distances = dsquared['x'] + dsquared['y']
+                distance = distances.min()
+                if distance < 3**2:
                     idx = distances.idxmin()
-                    try:
-                        line = SidPoint.objects.get(sidtime=prev_sidtime, idx=idx).line
+                    # This name is confusing
+                    prev_point = SidPoint.objects.get(sidtime=prev_sidtime, idx=idx)
+                    if prev_point.next: # then we have a collision
+                        distance1 = ( (prev_point.x - prev_point.next.x)**2 + 
+                                (prev_point.y - prev_point.next.y)**2 )
+                        if distance < distance1:
+                            discard_point = prev_point.next 
+                            line = Line()
+                            line.save()
+                            discard_point.line = line
+                            discard_point.prev = None
+                            discard_point.save()
+                            line = prev_point.line
+                            matched = True
+                    else:
+                        line = prev_point.line
                         matched = True
-                    except KeyError:
-                        pass
+                    break
             if not matched:
+                prev_point = None
                 line = Line()
                 line.save()
-            points_django.append( SidPoint(x=point['x'], y=point['y'], flux=point['f'], line=line, idx=i, sidtime=sidtime) )
-        #    if len(points_django) > 1000: # Avoid sqlite variable limit
-        SidPoint.objects.bulk_create(points_django)
-        points_django = []
+            sidpoint = SidPoint(x=point['x'], y=point['y'], flux=point['f'], line=line, idx=i, sidtime=sidtime, prev=prev_point) 
+            sidpoint.save()
+        #    if len(points_django) > 1000: # Avoid sqlite variable limit #SidPoint.objects.bulk_create(points_django)
+        #points_django = []
 
         prev_points_list.insert(0, (sidtime, points))
         if len(prev_points_list) > 4:

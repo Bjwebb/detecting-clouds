@@ -3,6 +3,9 @@ from django.db import models
 class SidTime(models.Model):
     time = models.TimeField()
 
+    def __unicode__(self):
+        return unicode(self.time)
+
 class Line(models.Model):
     pass
 
@@ -18,6 +21,19 @@ class Point(models.Model):
 
 class SidPoint(Point):
     sidtime =  models.ForeignKey(SidTime)
+    prev = models.OneToOneField('self', null=True)
+
+    def __getattr__(self, name):
+        if name == 'next':
+            try:
+                return self.sidpoint
+            except SidPoint.DoesNotExist:
+                return None
+        else:
+            return super(SidPoint, self).__getattr__(name)
+
+    def __unicode__(self):
+        return unicode(self.sidtime)
 
 class RealPoint(Point):
     sidpoint =  models.ForeignKey(SidTime)

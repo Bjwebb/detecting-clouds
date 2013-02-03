@@ -9,5 +9,6 @@ DATABASES = {
     }
 }
 INSTALLED_APPS = (
-    'clouds'
+    'clouds',
+    'south'
 )

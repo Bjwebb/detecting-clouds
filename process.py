@@ -192,16 +192,19 @@ def datetime_mod(dt, divisor):
     n = int(dt.total_seconds() / divisor.total_seconds())
     return dt - n*divisor
 
-def groupby_sidereal_time():
-    orig_path = 'sym'
+def get_sidereal_time(dt):
     sidzero = datetime.datetime(2011,1,1)
     sidday = datetime.timedelta(hours=23.9344699)
+    return datetime_mod(dt-sidzero, sidday)
+
+def groupby_sidereal_time():
+    orig_path = 'sym'
     for (path, subdirs, files) in os.walk(orig_path):
         subdirs.sort()
         files.sort()
         for fname in files:
             dt = dateutil.parser.parse(fname.split('.')[0])
-            sidtime = datetime_mod(dt-sidzero, sidday)
+            sidtime = get_sidereal_time(dt)
             os.symlink(
                 os.path.abspath(os.path.realpath(os.path.join(path,fname))),
                 join('sid',

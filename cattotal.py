@@ -1,8 +1,6 @@
 import numpy, pandas
 import os, datetime, math
 import subprocess
-from PIL import Image, ImageDraw
-from itertools import izip_longest
 
 catdir = os.path.join('out', 'cat', 'sid')
 
@@ -12,12 +10,16 @@ from django.core.management import setup_environ
 import clouds.settings
 setup_environ(clouds.settings)
 from clouds.models import SidPoint, Line, SidTime 
-os.remove('db.sqlite')
+try:
+    os.remove('db.sqlite')
+except OSError:
+    pass
 subprocess.call(['python','manage.py','syncdb'])
+subprocess.call(['python','manage.py','migrate'])
 
 prev_points_list = []
 steps = 0
-points_django = []
+#points_django = []
 for (path, subdirs, files) in os.walk(catdir):
     subdirs.sort()
     files.sort()
@@ -79,44 +81,9 @@ for (path, subdirs, files) in os.walk(catdir):
         prev_points_list.insert(0, (sidtime, points))
         if len(prev_points_list) > 4:
             prev_points_list.pop()
-        steps += 1
+    steps += 1
 
     #if steps > 10:
     #    break
-SidPoint.objects.bulk_create(points_django)
-
-"""
-im = Image.new('RGB', (640,480), 'white')
-draw = ImageDraw.Draw(im)
-for line in lines:
-    prev_point = None
-    for point in line:
-        if type(point) == type(None):
-            continue
-        if type(prev_point) == type(None):
-            draw.line((point['x'], point['y'], point['x'], point['y']), fill='black')
-        else:
-            draw.line((prev_point['x'], prev_point['y'], point['x'], point['y']), fill='black')
-        prev_point = point
-im.save('cattotal.png')
-"""
-
-
-"""
-im = Image.new('RGB', (640,480), 'white')
-draw = ImageDraw.Draw(im)
-
-prev_points = None
-for i, points in enumerate(izip_longest(*lines)):
-    if type(prev_points) != type(None):
-        for prev_point, point in zip(prev_points, points):
-            if type(point) == type(None):
-                continue
-            if type(prev_point) == type(None):
-                draw.line((point['x'], point['y'], point['x'], point['y']), fill='black')
-            else:
-                draw.line((prev_point['x'], prev_point['y'], point['x'], point['y']), fill='black')
-    im.save(join('out','cattotal',str(i).zfill(4)+'.png'))
-    prev_points = points
-"""
+#SidPoint.objects.bulk_create(points_django)
 

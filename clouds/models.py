@@ -16,7 +16,7 @@ class Point(models.Model):
     x = models.FloatField()
     y = models.FloatField()
     flux = models.FloatField()
-    line = models.ForeignKey(Line)
+    line = models.ForeignKey(Line, null=True)
     idx = models.IntegerField()
 
 class SidPoint(Point):
@@ -30,11 +30,14 @@ class SidPoint(Point):
             except SidPoint.DoesNotExist:
                 return None
         else:
-            return super(SidPoint, self).__getattr__(name)
+            return getattr(super(SidPoint, self), name)
 
     def __unicode__(self):
         return unicode(self.sidtime)
 
-class RealPoint(Point):
-    sidpoint =  models.ForeignKey(SidTime)
+class Image(models.Model):
     datetime = models.DateTimeField()
+
+class RealPoint(Point):
+    sidpoint = models.ForeignKey(SidPoint, null=True)
+    image = models.ForeignKey(Image) 

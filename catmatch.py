@@ -11,7 +11,6 @@ import clouds.settings
 setup_environ(clouds.settings)
 from clouds.models import Image, RealPoint, SidPoint, Line, SidTime 
 
-steps = 0
 for (path, subdirs, files) in os.walk(catdir):
     print path
     subdirs.sort()
@@ -30,41 +29,45 @@ for (path, subdirs, files) in os.walk(catdir):
             df = pandas.read_csv(os.path.join(path, fname), delim_whitespace=True, comment='#', header=None, skiprows=11)
         except ZeroDivisionError:
             # This is thrown if there are no lines in the file
-            pass
+            continue
 
         # Exclude object larger than 10 pixels
         df = df[ (df[7]-df[5]) < 10 ]
         df = df[ (df[8]-df[6]) < 10 ]
 
         points = pandas.DataFrame({ 'x': df[9], 'y': df[10], 'f': df[3] })
-        print len(points)
 
-
+        sidpoints = SidPoint.objects.filter(sidtime=sidtime).all()
+        taken_sidpoint_ids = {}
+        realpoints = []
         for i, point in points.iterrows():
-            sidpoints = SidPoint.objects.filter(sidtime=sidtime)
+            """
+            distances = [ (pow(sp.x-point['x'],2)+pow(sp.y-point['y'],2), sp) for sp in sidpoints ]
+            d = min(distances)
+            """
             sidpoint = sidpoints.extra(select={
-                'd':'(x-{0})*(x-{0}) + (y-{1})*(y-{1})'.format(
+                #'d':'(x-{0})*(x-{0}) + (y-{1})*(y-{1})'.format(
+                'd':'pow(x-{0}, 2) + pow(y-{1}, 2)'.format(
                     point['x'],point['y'])}).order_by('d')[0]
-            try:
-                other_realpoint = sidpoint.realpoint_set.get(image=image)
-                distance1 = (other_realpoint.x - sidpoint.x)**2 + (other_realpoint.y - sidpoint.y)**2
-                if sidpoint.d < distance1:
-                    other_realpoint.sidpoint = None
-                    other_realpoint.save()
-                else:
-                    continue
-            except RealPoint.DoesNotExist:
-                pass
+            if sidpoint.d < 3**2:
+                use_sidpoint = True
+                if sidpoint.pk in taken_sidpoint_ids:
+                    other_realpoint = taken_sidpoint_ids[sidpoint.pk]
+                    distance1 = (other_realpoint.x - sidpoint.x)**2 + (other_realpoint.y - sidpoint.y)**2
+                    if sidpoint.d < distance1:
+                        other_realpoint.sidpoint = None
+                    else:
+                        use_sidpoint = False
+            else:
+                use_sidpoint = False
+
             realpoint = RealPoint(x=point['x'], y=point['y'],
                 flux=point['f'],
                 idx=i, image=image) 
-            if sidpoint.d < 3**2:
+            if use_sidpoint:
                 realpoint.sidpoint = sidpoint
                 realpoint.line = sidpoint.line
-            realpoint.save()
-
-    steps += 1
-
-    #if steps > 10:
-    #    break
-
+                taken_sidpoint_ids[sidpoint.pk] = realpoint 
+            realpoints.append(realpoint)
+            
+        RealPoint.objects.bulk_create(realpoints)

@@ -10,10 +10,13 @@ from django.core.management import setup_environ
 import clouds.settings
 setup_environ(clouds.settings)
 from clouds.models import SidPoint, Line, SidTime 
+# TODO Replace with drop commands
+"""
 try:
     os.remove('db.sqlite')
 except OSError:
     pass
+"""
 subprocess.call(['python','manage.py','syncdb'])
 subprocess.call(['python','manage.py','migrate'])
 

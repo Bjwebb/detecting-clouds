@@ -5,6 +5,7 @@ FIXME fix hardcoded params
 Currently finding 'sidtime' by rounding down....
 (lb) Sort out them smudges
 Deal with float BSCALE in a nicer way
+Check what's happening with timezones
 
 Try actually summing all picked up intensities, RE: plan
 

@@ -30,16 +30,19 @@
         imgs.eq(i).show();
     }
     $(window).load(function() {
-        imgs = $('img');
+        imgs = $('.image');
         n = imgs.length;
     });
+    function show() {
+        imgs.show()
+    }
 </script>
 </head>
 <body>
 <p>
     <a href="javascript:go=true;tick()">Start</a>
-    <a href="javascript:go=false">Stop</a>
+    <a href="javascript:go=false;tick()">Stop</a>
     <a href="javascript:prev()">Previous</a>
     <a href="javascript:next()">Next</a>
-    <a href="javascript:imgs.show()">Show All</a>
+    <a href="javascript:show()">Show All</a>
 </p>

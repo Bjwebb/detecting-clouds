@@ -8,6 +8,13 @@ import scipy.misc.pilutil as smp
 import sys, os, shutil, subprocess
 import errno, json
 
+from django.core.management import setup_environ
+import clouds.settings
+setup_environ(clouds.settings)
+from clouds.models import Image
+
+from multiprocessing import Pool
+
 def path_split(path):
     l = []
     while path:
@@ -145,34 +152,59 @@ def generate_out(orig_path, outdir='out', use_path=False):
                       out_path=out_path)
                       #total=True) # FIXME
 
-def generate_sum(orig_path):
-    day = 0
-    def days(d):
-        return day + float(d[8:10])/24 + float(d[10:12])/(24*60)
+def tuple_magic(*args, **kwargs):
+    return (args, kwargs)
+
+def process_night_sum((args,kwargs)):
     def do_sum_plot(name, data):
+        # This is broken due to the above
         print days(name[:-5]), numpy.sum(data, dtype=numpy.int64)
     def do_sum_json(name, data):
         meta[name[:-5]] =  int(numpy.sum(data, dtype=numpy.int64))
+    def do_sum_db(name, data):
+        dt = dateutil.parser.parse(name.split('.')[0])
+        print dt
+        image = Image.objects.get(datetime=dt)
+        image.intensity = numpy.sum(data, dtype=numpy.int64)
+        image.save()
+    do_json = False # FIXME
+    do_sum = do_sum_db
+    kwargs['extraf'] = do_sum
+    if do_json:
+        meta = {}
+    out = process_night(*args, **kwargs)
+    if do_json:
+        json.dump(meta,
+            open(join('out','meta',get_subdir(path),'sum.json'),'w'))
+    return out
+
+def generate_sum(orig_path):
+    def days(d):
+        # This is borken now, due to switching to tree walking
+        return day + float(d[8:10])/24 + float(d[10:12])/(24*60)
+    
+    pool = Pool(processes=4)
+
+    """
     do_json = True # FIXME
     do_sum = do_sum_json
-
+    """
+    
+    nights = []
     for (path, subdirs, files) in os.walk(orig_path):
         subdirs.sort()
         files.sort()
-        if do_json:
-            meta = {}
-            
-        process_night(path,
+        
+        nights.append( 
+          tuple_magic(path,
                       files,
                       image=False,
                       do_output=False,
                       do_diff=False,
                       do_filter=False,
-                      extraf=do_sum)
-        if do_json:
-            json.dump(meta,
-                open(join('out','meta',get_subdir(path),'sum.json'),'w'))
-    day += 1
+                      ))
+    pool.map(process_night_sum, nights)
+
 
 def generate_symlinks(orig_path, outdir='sym'):
     for (path, subdirs, files) in os.walk(orig_path):

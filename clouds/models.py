@@ -9,7 +9,6 @@ class SidTime(models.Model):
 class Line(models.Model):
     pass
 
-# Mayble should distinguish sidpoints from real points
 class Point(models.Model):
     class Meta:
         abstract = True
@@ -37,6 +36,7 @@ class SidPoint(Point):
 
 class Image(models.Model):
     datetime = models.DateTimeField()
+    intensity = models.BigIntegerField(null=True)
 
 class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)

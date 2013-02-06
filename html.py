@@ -15,11 +15,11 @@ try:
 
     for i, f in enumerate(sorted(os.listdir(outdir))):
         if f.endswith('.png') and not f.endswith('total.png'):
-            f_out.write('<div class="image"><a href="{1}"><img id="pic"{0}" src="{1}" /></a> {2}<br/></div>\n'.format(i,quote(f), str(float(meta[f[:-4]])/(10**9))+' *10^9' ))
+            f_out.write('<div class="image"><a href="{1}"><img id="pic"{0}" src="{1}" /></a> {2}</div>\n'.format(i,quote(f), str(float(meta[f[:-4]])/(10**9))+' *10^9' ))
 except IOError: 
     for i, f in enumerate(sorted(os.listdir(outdir))):
         if f.endswith('.png') and not f.endswith('total.png'):
-            f_out.write('<div class="image"><a href="{1}"><img id="pic"{0}" src="{1}" /></a></div>\n'.format(i,quote(f)))
+            f_out.write('<div class="image"><a href="{1}"><img id="pic"{0}" src="{1}" /></a> {2}</div>\n'.format(i,quote(f), f[11:19]))
 
 f_out.write('</head></body>')
 f_out.close()

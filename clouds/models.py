@@ -7,7 +7,7 @@ class SidTime(models.Model):
         return unicode(self.time)
 
 class Line(models.Model):
-    pass
+    average_flux = models.FloatField(default=0.0)
 
 class Point(models.Model):
     class Meta:
@@ -36,6 +36,7 @@ class SidPoint(Point):
 
 class Image(models.Model):
     datetime = models.DateTimeField()
+    sidtime = models.ForeignKey(SidTime, null=True)
     intensity = models.BigIntegerField(null=True)
 
 class RealPoint(Point):

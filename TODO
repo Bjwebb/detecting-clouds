@@ -8,4 +8,4 @@ Deal with float BSCALE in a nicer way
 Check what's happening with timezones
 Do multiprocessing consistently
 Investigate whether the Milky Way is acting like a cloud
-
+Merge catmatch_tmp.py in to catmatch.py

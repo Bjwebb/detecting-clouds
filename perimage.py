@@ -15,13 +15,16 @@ def scale(n):
 
 year = int(sys.argv[1])
 month = int(sys.argv[2])
-data = open(os.path.join('out', 'sum', sys.argv[1]+sys.argv[2].zfill(2)), 'w')
+#data = open(os.path.join('out', 'sum', sys.argv[1]+sys.argv[2].zfill(2)), 'w')
+data = open(os.path.join('out', 'sum2', sys.argv[1]+sys.argv[2].zfill(2)), 'w')
 if month == 12:
     tomonth = 1
     toyear = year+1
 else:
     tomonth = month+1
     toyear = year
+
+"""
 for image in Image.objects.filter(
             datetime__gt=datetime.datetime(year,month,1),
             datetime__lt=datetime.datetime(toyear,tomonth,1)).order_by('datetime').annotate(Sum('realpoint__flux')).annotate(Count('realpoint')):
@@ -53,4 +56,32 @@ for image in Image.objects.filter(
     data.flush()
     sys.stdout.write('.')
     sys.stdout.flush()
+"""
+
+for image in Image.objects.filter(
+            datetime__gt=datetime.datetime(year,month,1),
+            datetime__lt=datetime.datetime(toyear,tomonth,1)).order_by('datetime'
+                ).annotate(Sum('realpoint__flux')
+                ).annotate(Count('realpoint')
+                ).annotate(Sum('realpoint__flux')
+                ):
+    realpoints = image.realpoint_set.filter(sidpoint__isnull=False).filter(
+        line__average_flux__gt=0.0)#.annotate(Avg('line__realpoint__flux')).annotate(
+        #Max('line__realpoint__flux'))
+    out = [
+        image.datetime,
+        image.realpoint__count,
+        len(realpoints),
+        image.sidtime.sidpoint_set.count(),
+        image.realpoint__flux__sum or 0.0,
+        realpoints.aggregate(Sum('flux'))['flux__sum'],
+        image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
+        realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+        image.sidtime.sidpoint_set.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+    ]
+    data.write( u' '.join(map(unicode, out))+u'\n' )
+    data.flush()
+    sys.stdout.write('.')
+    sys.stdout.flush()
+
 

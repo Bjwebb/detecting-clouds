@@ -12,3 +12,5 @@ INSTALLED_APPS = (
     'clouds',
     'south'
 )
+ROOT_URLCONF = 'clouds.urls'
+DEBUG = True

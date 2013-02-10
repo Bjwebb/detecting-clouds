@@ -69,14 +69,23 @@ for image in Image.objects.filter(
         line__average_flux__gt=0.0)#.annotate(Avg('line__realpoint__flux')).annotate(
         #Max('line__realpoint__flux'))
     out = [
+        # 1
         image.datetime,
+        # 3
         image.realpoint__count,
+        # 4
         len(realpoints),
+        # 5
         image.sidtime.sidpoint_set.count(),
-        image.realpoint__flux__sum or 0.0,
+        # 6
+        scale(image.realpoint__flux__sum),
+        # 7
         realpoints.aggregate(Sum('flux'))['flux__sum'],
+        # 8
         image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
+        # 9
         realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+        # 10
         image.sidtime.sidpoint_set.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
     ]
     data.write( u' '.join(map(unicode, out))+u'\n' )

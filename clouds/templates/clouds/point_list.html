@@ -1,0 +1,18 @@
+{% include 'head.html' %}
+
+{% include 'pagination.html' %}
+
+{% for point in object_list %}
+<div class="image" style="position: relative">
+    <div style="float:right; font-size:{% widthratio point.flux 200 1 %}px">{{point.flux}}</div>
+    <div style="border:1px solid red;
+                width:10px;
+                height:10px;
+                position:absolute;
+                top:{{point.y|add:'-5'}}px;
+                left:{{point.x|add:'-5'}}px;"></div>
+    <img src="{{ MEDIA_URL }}out/png/{{point.get_png|urlencode}}" /><br/>
+</div>
+{% endfor %}
+
+{% include 'pagination.html' %}

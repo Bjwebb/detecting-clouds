@@ -1,0 +1,31 @@
+<style>
+td,th { padding-left: 1em }
+td { text-align: right }
+</style>
+
+{% load url from future %}
+
+{% include 'pagination.html' %}
+
+<table>
+<tr>
+    <th>ID</th>
+    <th>Average Flux</th>
+    <th>Sidpointis</th>
+    <th>Realpoints</th>
+</tr>
+{% for line in line_list %}
+<tr>
+    <td>
+        <a href="{% url 'clouds.views.line' pk=line.pk %}">
+            {{ line.pk }}
+        </a>
+    </td>
+    <td>{{ line.average_flux }}</td>
+    <td>{{ line.sidpoint_set.count }}</td>
+    <td>{{ line.realpoint_set.count }}</td>
+</tr>
+{% endfor %}
+</table>
+
+{% include 'pagination.html' %}

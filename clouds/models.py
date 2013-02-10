@@ -34,6 +34,10 @@ class SidPoint(Point):
     def __unicode__(self):
         return unicode(self.sidtime)
 
+    def get_png(self):
+        t = self.sidtime.time
+        return 'sid/' + '/'.join([ unicode(x).zfill(2) for x in [ t.hour, t.minute, 'total.png' ] ]) 
+
 class Image(models.Model):
     datetime = models.DateTimeField()
     sidtime = models.ForeignKey(SidTime, null=True)
@@ -42,3 +46,7 @@ class Image(models.Model):
 class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
+
+    def get_png(self):
+        return 'sym/' + self.image.datetime.strftime('%Y/%m/%d/%Y-%m-%dT%H:%M:%S.png')
+        

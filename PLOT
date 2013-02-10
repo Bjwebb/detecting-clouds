@@ -2,3 +2,4 @@ set timefmt "%Y-%m-%d %H:%M:%S"
 set xdata time
 set y2tics
 set x2zeroaxis
+set format x "%Y/%m/%d %H:%M:%S"

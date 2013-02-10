@@ -1,0 +1,32 @@
+<style>
+h2 { margin-left: 2em }
+td,th { padding-left: 0.5em }
+td { text-align: left }
+th { text-align: right }
+</style>
+
+{% load url from future %}
+
+<h2>{{line.pk}}</h2>
+<table>
+<tr>
+    <th>Average Flux</th>
+    <td>{{ line.average_flux }}</td>
+</tr>
+<tr>
+    <th>
+        <a href="{% url 'clouds.views.line_sidpoints' line=line.pk %}">
+            Sidpoints
+        </a>
+    </th>
+    <td>{{ line.sidpoint_set.count }}</td>
+</tr>
+<tr>
+    <th>
+        <a href="{% url 'clouds.views.line_realpoints' line=line.pk %}">
+            Realpoints
+        </a>
+    </th>
+    <td>{{ line.realpoint_set.count }}</td>
+</tr>
+</table>

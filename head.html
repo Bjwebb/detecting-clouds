@@ -36,6 +36,24 @@
     function show() {
         imgs.show()
     }
+    extracted = false;
+    $(document).keydown(function(e) {
+        if (e.which == 69) {
+            console.log('Test');
+            if (extracted) {
+                $('.image img').each(function(i, img){
+                    img.src = img.src.replace('/png/extracted/', '/png/');
+                    extracted = false;
+                });
+            }
+            else {
+                $('.image img').each(function(i, img){
+                    img.src = img.src.replace('/png/', '/png/extracted/');
+                    extracted = true;
+                });
+            }
+        }
+    });
 </script>
 </head>
 <body>

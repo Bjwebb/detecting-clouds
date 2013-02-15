@@ -1,0 +1,27 @@
+{% load url from future %}
+<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+<script type="text/javascript">
+xmin = {{gpval.X_MIN}};
+xmax = {{gpval.X_MAX}};
+term_xmin = {{gpval.TERM_XMIN}};
+term_xmax = {{gpval.TERM_XMAX}};
+ymin = {{gpval.Y_MIN}};
+ymax = {{gpval.Y_MAX}};
+term_ymin = {{gpval.TERM_YMIN}};
+term_ymax = {{gpval.TERM_YMAX}};
+$(function() {
+    $('#plot').click(function(e){
+        var x = e.pageX - e.target.offsetLeft;
+        //var y = e.pageY - e.target.offsetTop;
+        if (x>term_xmin && x<term_xmax) {// && y>term_ymin && y<term_ymax) {
+            var x2 = xmin + (xmax-xmin)*(x-term_xmin)/(term_xmax-term_xmin);
+            //var y2 = ymax - (ymax-ymin)*(y-term_ymin)/(term_ymax-term_ymin);
+            xtimestamp = 946684800+x2
+            xdate = Date(xtimestamp*1000);
+            //alert(xdate);
+            window.location = '{% url 'clouds.views.line_realpoints' line=line %}?timestamp='+xtimestamp;
+        }
+    })
+});
+</script>
+<img src="{{MEDIA_URL}}{{imagesrc}}" id="plot" />

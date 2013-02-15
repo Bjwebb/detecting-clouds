@@ -1,17 +1,32 @@
 {% include 'head.html' %}
 
+<script type="text/javascript">
+window.location.hash = '{{closest.pk}}';
+</script>
+
 {% include 'pagination.html' %}
 
 {% for point in object_list %}
-<div class="image" style="position: relative">
-    <div style="float:right; font-size:{% widthratio point.flux 200 1 %}px">{{point.flux}}</div>
+<div class="image" style="position: relative; height: 480px;" id="{{point.pk}}">
+    <div style="float:right; text-align: right"> 
+        <div>{{point.image.datetime|date:"c"}}</div>
+        <div style="font-size:100px">{{point.flux|floatformat:"0"}}</div>
+        {% comment %}
+        <div style=" font-size:{% widthratio point.flux 200 1 %}px">{{point.flux}}</div>
+        {% endcomment %}
+    </div>
+    <a href="{{ MEDIA_URL }}out/fits_filtered/{{point.get_url|urlencode}}.fits">
+    <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"
+            style="position:absolute;
+                   top:0px;
+                   left:0px;"/>
+    </a>
     <div style="border:1px solid red;
                 width:10px;
                 height:10px;
                 position:absolute;
                 top:{{point.y|add:'-5'}}px;
                 left:{{point.x|add:'-5'}}px;"></div>
-    <img src="{{ MEDIA_URL }}out/png/{{point.get_png|urlencode}}" /><br/>
 </div>
 {% endfor %}
 

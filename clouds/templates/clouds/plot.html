@@ -19,7 +19,7 @@ $(function() {
             xtimestamp = 946684800+x2
             xdate = Date(xtimestamp*1000);
             //alert(xdate);
-            window.location = '{% url 'clouds.views.line_realpoints' line=line %}?timestamp='+xtimestamp;
+            window.location = '{% block clickurl %}{% endblock %}?{%if column%}column={{column}}&{%endif%}timestamp='+xtimestamp;
         }
     })
 });

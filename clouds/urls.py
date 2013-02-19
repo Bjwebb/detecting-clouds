@@ -7,6 +7,10 @@ urlpatterns = patterns('clouds.views',
     url(r'^lines/(?P<line>\d+)/sidpoints$', 'line_sidpoints'), 
     url(r'^lines/(?P<line>\d+)/realpoints$', 'line_realpoints'), 
     url(r'^lines/(?P<line>\d+)/realpoints/plot$', 'line_realpoints_plot'), 
+    url(r'^plot/$', 'plot'), 
+    url(r'^plot/(\d+)$', 'plot'), 
+    url(r'^plot/(\d+)/(\d+)$', 'plot'), 
+    url(r'^plot/(\d+)/(\d+)/(\d+)$', 'plot'), 
 )
 
 from django.conf import settings

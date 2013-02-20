@@ -5,6 +5,9 @@ from clouds.models import Image, RealPoint, SidPoint, Line, SidTime
 from django.db.models import Sum, Max, Count, Avg 
 
 for line in Line.objects.annotate(Count('realpoint')).filter(
-        realpoint__count__gt=20).annotate(Avg('realpoint__flux')):
+        realpoint__count__gt=20).annotate(
+        Avg('realpoint__flux')).annotate(
+        Max('realpoint__flux')):
     line.average_flux = line.realpoint__flux__avg
+    line.max_flux = line.realpoint__flux__max
     line.save()

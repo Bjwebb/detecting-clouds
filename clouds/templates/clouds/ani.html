@@ -12,28 +12,33 @@
     i = 0;
     imgs = null;
     go = true;
+    timestamps = null;
     function tick() {
         if (!go) return;
         next();
         setTimeout(tick, 100);
     }
     function next() {
-        imgs.hide();        
+        imgs.css('display', 'none');        
         i++;
         if (i>= n) i=0;
         imgs.eq(i).show();
         onimagechange(imgs.eq(i));
     }
     function prev() {
-        imgs.hide();        
+        imgs.css('display', 'none');        
         i--;
         if (i < 0) i=n-1;
         imgs.eq(i).show();
         onimagechange(imgs.eq(i));
     }
-    $(window).load(function() {
+    $(function() {
         imgs = $('.image');
         n = imgs.length;
+        timestamps = new Array(n);
+        for (j=0; j<n; j++) {
+            timestamps[j] = imgs.eq(j).data('timestamp');
+        }
     });
     function show() {
         imgs.show()
@@ -79,7 +84,7 @@
 
 {% block imagelist %}
 {% for image in image_list %}
-<div class="image" data-timestamp="{{image.datetime|date:"U"}}">
+<div class="image" data-timestamp="{{image.datetime|date:"U"}}" data-pk="{{image.pk}}">
 <a href="{{ MEDIA_URL }}out/fits_filtered/{{image.get_url}}.fits">
 <img src="{{MEDIA_URL}}out/png/{{image.get_url}}.png"/></a>
 {{image.datetime|date:"H:i:s"}}

@@ -8,6 +8,7 @@ class SidTime(models.Model):
 
 class Line(models.Model):
     average_flux = models.FloatField(default=0.0)
+    max_flux = models.FloatField(default=0.0)
 
 class Point(models.Model):
     class Meta:

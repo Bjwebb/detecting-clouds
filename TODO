@@ -11,3 +11,4 @@ Investigate whether the Milky Way is acting like a cloud
 Merge catmatch_tmp.py in to catmatch.py
 Check for negative fluxes
 Beware of the start/end of sidtime
+Clean up some of the early javascript variable names

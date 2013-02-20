@@ -7,6 +7,7 @@ import subprocess, tempfile, re, os, datetime
 import settings
 from django.core.urlresolvers import reverse
 import datetime
+import hashlib
 
 def home(request):
     return HttpResponse('This page intentionally left blank.')
@@ -64,31 +65,32 @@ class PlotView(object):
     context = {}
 
     def get_context_data(self, **context):
-        image = urlquote_plus(self.request.META['PATH_INFO'].replace('/','-'))+'.png'
-        output_filename = os.path.join(settings.MEDIA_ROOT, 'tmp', image)
-        imagesrc = 'tmp/'+image
         data_file = self.get_data_file()
-        command_file = tempfile.NamedTemporaryFile()
-        stdout_file = tempfile.NamedTemporaryFile()
-        command_file.write("""
+        command_string = """
 set timefmt "%Y-%m-%d %H:%M:%S"
 set xdata time
-set terminal png size {5} 
-set output '{0}'
+set terminal png size {0} 
 set format x '{1}'
 {2}
-plot '{3}' using 1:{4} {6}
+plot '{3}' using 1:{4} {5}
 show variables all
-""".format(output_filename,
+""".format(
+           self.gnuplot_size,
            self.gnuplot_date_format,
            self.extra_commands,
            data_file.name,
            self.gnuplot_column_no,
-           self.gnuplot_size,
            ('w lines' if self.gnuplot_lines else '')
-        ))
+        )
+        image = hashlib.md5(command_string).hexdigest()+urlquote_plus(
+                    self.request.META['PATH_INFO'].replace('/','-'))+'.png'
+        output_filename = os.path.join(settings.MEDIA_ROOT, 'tmp', image)
+        imagesrc = 'tmp/'+image
+        command_file = tempfile.NamedTemporaryFile()
+        stdout_file = tempfile.NamedTemporaryFile()
+        command_file.write(
+            "set output '{0}'\n".format(output_filename)+command_string)
         command_file.flush()
-        data_file.flush()
         exitcode = subprocess.call(['gnuplot', command_file.name], stdout=stdout_file, stderr=stdout_file)
         stdout_file.flush()
         stdout_file.seek(0)
@@ -102,7 +104,6 @@ show variables all
                 gpval[m.group(1)] = m.group(2)
         # X_MIN X_MAX TERM_XMIN TERM_XMAX etc.
         data_file.close()
-        print gpval
         context.update({'imagesrc': imagesrc, 'gpval': gpval})
         context.update(self.context)
         return context
@@ -120,6 +121,7 @@ class PointsPlotView(PlotView, PointsView):
             data_file.write(' ')
             data_file.write(unicode(point.flux))
             data_file.write('\n')
+            data_file.flush()
         return data_file
 
     def get_context_data(self, **context):
@@ -130,7 +132,7 @@ class CloudsPlotView(PlotView, TemplateView):
     template_name = 'clouds/plot.html'
     
     def get(self, request, year=None, month=None, day=None):
-        if 'timestamp' in self.request.GET:
+        if 'timestamp' in request.GET:
             dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
             suffix = ''
             if day:
@@ -144,16 +146,13 @@ class CloudsPlotView(PlotView, TemplateView):
                 args=(dt.year,)
             q = request.GET.copy()
             del q['timestamp']
-            #print dt
-            #return HttpResponse(reverse('clouds.views.plot', args=args))
-            print q
             return HttpResponseRedirect(reverse('clouds.views.plot'+suffix, args=args)+'?'+q.urlencode())
+        self.context['querystring'] = request.GET.urlencode()
 
-        if 'column' in self.request.GET:
-            self.gnuplot_column_no = int(self.request.GET['column'])
-            self.context['column'] = self.gnuplot_column_no
-        if 'lines' in self.request.GET:
-            self.gnuplot_lines = bool(self.request.GET['lines'])
+        if 'column' in request.GET:
+            self.gnuplot_column_no = int(request.GET['column'])
+        self.gnuplot_lines = 'lines' in request.GET
+        self.context['mouseover'] = 'm' in request.GET
         if year:
             dt_from = datetime.datetime(int(year), int(month or 1), int(day or 1))
             if day:
@@ -191,7 +190,6 @@ class DoubleViewMixin(object):
             def get(self, request, *args, **kwargs):
                 self.context_data = self.get_context_data(
                         object_list=self.get_queryset(), **kwargs)
-        print kwargs
         self.secondary = OutputlessSeconary(**kwargs)
         return out
     

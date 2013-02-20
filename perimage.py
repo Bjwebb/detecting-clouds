@@ -70,26 +70,31 @@ for image in Image.objects.filter(
         #Max('line__realpoint__flux'))
     realflux = realpoints.aggregate(Sum('flux'))['flux__sum'] or 0.0
     sidlineaverageflux = image.sidtime.sidpoint_set.aggregate(Sum('line__average_flux'))['line__average_flux__sum'] 
+    sidlinemaxflux = image.sidtime.sidpoint_set.aggregate(Sum('line__max_flux'))['line__max_flux__sum'] 
     out = [
         # 1
         image.datetime,
         # 3
-        realflux/sidlineaverageflux,
+        realflux/sidlinemaxflux,
         # 4
-        image.realpoint__count,
+        realflux/sidlineaverageflux,
         # 5
-        len(realpoints),
+        image.realpoint__count,
         # 6
-        image.sidtime.sidpoint_set.count(),
+        len(realpoints),
         # 7
-        scale(image.realpoint__flux__sum),
+        image.sidtime.sidpoint_set.count(),
         # 8
-        realflux,
+        scale(image.realpoint__flux__sum),
         # 9
-        image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
+        realflux,
         # 10
-        realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+        image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
         # 11
+        realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+        # 12
+        sidlinemaxflux,
+        # 13
         sidlineaverageflux,
     ]
     data.write( u' '.join(map(unicode, out))+u'\n' )

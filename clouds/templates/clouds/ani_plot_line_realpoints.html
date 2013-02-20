@@ -4,7 +4,8 @@
 {% include 'pagination.html' %}
 
 {% for point in object_list %}
-<div class="image" data-timestamp="{{point.image.datetime|date:"U"}}"
+<div class="image"
+        data-timestamp="{{point.image.datetime|date:"U"}}" data-pk="{{point.image.pk}}"
         style="position: relative; height: 480px; width: 640px; left:900px;" id="{{point.pk}}">
     <a href="{{ MEDIA_URL }}out/fits_filtered/{{point.get_url|urlencode}}.fits">
     <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"

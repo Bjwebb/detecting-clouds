@@ -1,0 +1,50 @@
+{% extends 'clouds/ani.html' %}
+
+{% block header %}
+<style>
+#plotcontainer {
+    float: left;
+}
+#pointer {
+    height: 100%;
+}
+</style>
+
+<script type="text/javascript">
+    function onimagechange(img) {
+        timestamp = img.data('timestamp');
+        var x2 = timestamp - 946684800
+        var x = (x2-xmin)*(term_xmax-term_xmin)/(xmax-xmin);
+        $('#pointer').css('left', x);
+    }
+    function plotclick(timestamp) {
+        for (i=0; i<imgs.length; i++) {
+            t = imgs.eq(i+1).data('timestamp');
+            console.log(t + ' ' + timestamp)
+            if (timestamp < t || i==(imgs.length-1)) {
+                imgs.hide();        
+                imgs.eq(i).show();
+                onimagechange(imgs.eq(i));
+                break;
+            }
+        }
+    }
+    $(function() {
+        $('#pointer').css('border', 'blue 1px solid');
+        $('#pointer').css('display', 'block');
+    });
+    $(document).keydown(function(e) {
+        if (e.which == 77) {
+            $('#clickablearea').mousemove(plotHandleMouse);
+        }
+        if (e.which == 78) {
+            $('#clickablearea').off('mousemove');
+        }
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+{% include 'clouds/plot.html' with clickfunction='plotclick' %}
+{{ block.super }}
+{% endblock %}

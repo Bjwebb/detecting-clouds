@@ -9,19 +9,30 @@ ymin = {{gpval.Y_MIN}};
 ymax = {{gpval.Y_MAX}};
 term_ymin = {{gpval.TERM_YMIN}};
 term_ymax = {{gpval.TERM_YMAX}};
+term_xsize = {{gpval.TERM_XSIZE}}
+term_ysize = {{gpval.TERM_YSIZE}}
+function plotHandleMouse(e) {
+    var x = e.pageX - $('#clickablearea').offset().left;
+    var x2 = xmin + (xmax-xmin)*(x)/(term_xmax-term_xmin);
+    xtimestamp = 946684800+x2
+    //xdate = Date(xtimestamp*1000);
+    {% if clickfunction %}
+        {{clickfunction}}(xtimestamp);
+    {% else %}
+        window.location = '{% block clickurl %}{% endblock %}?{%if column%}column={{column}}&{%endif%}timestamp='+xtimestamp;
+    {% endif %}
+}
 $(function() {
-    $('#plot').click(function(e){
-        var x = e.pageX - e.target.offsetLeft;
-        //var y = e.pageY - e.target.offsetTop;
-        if (x>term_xmin && x<term_xmax) {// && y>term_ymin && y<term_ymax) {
-            var x2 = xmin + (xmax-xmin)*(x-term_xmin)/(term_xmax-term_xmin);
-            //var y2 = ymax - (ymax-ymin)*(y-term_ymin)/(term_ymax-term_ymin);
-            xtimestamp = 946684800+x2
-            xdate = Date(xtimestamp*1000);
-            //alert(xdate);
-            window.location = '{% block clickurl %}{% endblock %}?{%if column%}column={{column}}&{%endif%}timestamp='+xtimestamp;
-        }
-    })
+    $('#clickablearea').click(plotHandleMouse);
+    $('#clickablearea').css('top', term_ysize-term_ymax);
+    $('#clickablearea').css('height', term_ymax-term_ymin);
+    $('#clickablearea').css('left', term_xmin);
+    $('#clickablearea').css('width', term_xmax-term_xmin);
 });
 </script>
+<div style="position:relative" id="plotcontainer">
 <img src="{{MEDIA_URL}}{{imagesrc}}" id="plot" />
+<div id="clickablearea" style="position:absolute; cursor:pointer">
+    <div id="pointer" style="position:absolute; display:none;"></div>
+</div>
+</div>

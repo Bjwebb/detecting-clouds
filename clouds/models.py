@@ -43,10 +43,13 @@ class Image(models.Model):
     sidtime = models.ForeignKey(SidTime, null=True)
     intensity = models.BigIntegerField(null=True)
 
+    def get_url(self):
+        return 'sym/' + self.datetime.strftime('%Y/%m/%d/%Y-%m-%dT%H:%M:%S')
+
 class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
 
     def get_url(self):
-        return 'sym/' + self.image.datetime.strftime('%Y/%m/%d/%Y-%m-%dT%H:%M:%S')
+        return self.image.get_url()
         

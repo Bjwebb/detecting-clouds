@@ -1,26 +1,11 @@
-{% extends 'clouds/ani.html' %}
-
-{% block header %}
-{{ block.super }}
-{% if closest %}
-<script type="text/javascript">
-window.location.hash = '{{closest.pk}}';
-</script>
-{% endif %}
-{% endblock %}
+{% extends 'clouds/ani_plot.html' %}
 
 {% block imagelist %}
 {% include 'pagination.html' %}
 
 {% for point in object_list %}
-<div class="image" style="position: relative; height: 480px;" id="{{point.pk}}">
-    <div style="float:right; text-align: right"> 
-        <div>{{point.image.datetime|date:"c"}}</div>
-        <div style="font-size:100px">{{point.flux|floatformat:"0"}}</div>
-        {% comment %}
-        <div style=" font-size:{% widthratio point.flux 200 1 %}px">{{point.flux}}</div>
-        {% endcomment %}
-    </div>
+<div class="image" data-timestamp="{{point.image.datetime|date:"U"}}"
+        style="position: relative; height: 480px; width: 640px; left:900px;" id="{{point.pk}}">
     <a href="{{ MEDIA_URL }}out/fits_filtered/{{point.get_url|urlencode}}.fits">
     <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"
             style="position:absolute;

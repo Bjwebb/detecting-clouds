@@ -1,6 +1,6 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import DetailView, ListView, TemplateView
-from clouds.models import Line, SidPoint, RealPoint
+from clouds.models import Line, SidPoint, RealPoint, Image
 from django.db.models import Count
 from django.utils.http import urlquote_plus
 import subprocess, tempfile, re, os, datetime
@@ -58,6 +58,8 @@ class PointsView(ListView):
 class PlotView(object):
     gnuplot_date_format = '%Y-%m-%d'
     gnuplot_column_no = 3
+    gnuplot_size = '1600,900'
+    gnuplot_lines = False
     extra_commands = ''
     context = {}
 
@@ -71,17 +73,20 @@ class PlotView(object):
         command_file.write("""
 set timefmt "%Y-%m-%d %H:%M:%S"
 set xdata time
-set terminal png size 1600,900
+set terminal png size {5} 
 set output '{0}'
 set format x '{1}'
 {2}
-plot '{3}' using 1:{4}
+plot '{3}' using 1:{4} {6}
 show variables all
 """.format(output_filename,
            self.gnuplot_date_format,
            self.extra_commands,
            data_file.name,
-           self.gnuplot_column_no))
+           self.gnuplot_column_no,
+           self.gnuplot_size,
+           ('w lines' if self.gnuplot_lines else '')
+        ))
         command_file.flush()
         data_file.flush()
         exitcode = subprocess.call(['gnuplot', command_file.name], stdout=stdout_file, stderr=stdout_file)
@@ -97,7 +102,7 @@ show variables all
                 gpval[m.group(1)] = m.group(2)
         # X_MIN X_MAX TERM_XMIN TERM_XMAX etc.
         data_file.close()
-        print output_filename
+        print gpval
         context.update({'imagesrc': imagesrc, 'gpval': gpval})
         context.update(self.context)
         return context
@@ -118,9 +123,8 @@ class PointsPlotView(PlotView, PointsView):
         return data_file
 
     def get_context_data(self, **context):
-        return super(PointsPlotView, self).get_context_data(
-                line=self.kwargs['line'],
-                **context)
+        context.update(line=self.kwargs['line'])
+        return super(PointsPlotView, self).get_context_data(**context)
 
 class CloudsPlotView(PlotView, TemplateView):
     template_name = 'clouds/plot.html'
@@ -128,24 +132,35 @@ class CloudsPlotView(PlotView, TemplateView):
     def get(self, request, year=None, month=None, day=None):
         if 'timestamp' in self.request.GET:
             dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
-            if year:
-                if month:
-                    args=(dt.year,dt.month,dt.day,)
-                else:
-                    args=(dt.year,dt.month,)
+            suffix = ''
+            if day:
+                return HttpResponse('test')
+            elif month:
+                args=(dt.year,dt.month,dt.day,)
+                suffix = '_day'
+            elif year:
+                args=(dt.year,dt.month,)
             else:
                 args=(dt.year,)
-            return HttpResponseRedirect(reverse('clouds.views.plot', args=args))
+            q = request.GET.copy()
+            del q['timestamp']
+            #print dt
+            #return HttpResponse(reverse('clouds.views.plot', args=args))
+            print q
+            return HttpResponseRedirect(reverse('clouds.views.plot'+suffix, args=args)+'?'+q.urlencode())
+
         if 'column' in self.request.GET:
             self.gnuplot_column_no = int(self.request.GET['column'])
             self.context['column'] = self.gnuplot_column_no
+        if 'lines' in self.request.GET:
+            self.gnuplot_lines = bool(self.request.GET['lines'])
         if year:
             dt_from = datetime.datetime(int(year), int(month or 1), int(day or 1))
             if day:
                 dt_to = dt_from + datetime.timedelta(days=1)
                 self.gnuplot_date_format = '%H:%M'
             elif month:
-                if month == 12:
+                if month == '12':
                     dt_to = datetime.datetime(int(year)+1, 1, 1)
                 else:
                     dt_to = datetime.datetime(int(year), int(month)+1, 1)
@@ -158,11 +173,54 @@ class CloudsPlotView(PlotView, TemplateView):
     def get_data_file(self):
         return open(os.path.join('out', 'sum2data'), 'r')
 
+class AniView(ListView):
+    template_name = 'clouds/ani.html'
+    def get_queryset(self):
+        dt_args = map(int, self.args)
+        dt_from = datetime.datetime(*dt_args)
+        dt_to = dt_from + datetime.timedelta(days=1)
+        return Image.objects.filter(datetime__gt=dt_from, datetime__lt=dt_to).order_by('datetime')
+
+
+class DoubleViewMixin(object):
+    gnuplot_size = '900,900'
+
+    def __init__(self, **kwargs):
+        out = super(DoubleViewMixin, self).__init__(**kwargs)
+        class OutputlessSeconary(self.secondary_class):
+            def get(self, request, *args, **kwargs):
+                self.context_data = self.get_context_data(
+                        object_list=self.get_queryset(), **kwargs)
+        print kwargs
+        self.secondary = OutputlessSeconary(**kwargs)
+        return out
+    
+    def dispatch(self, request, *args, **kwargs):
+        self.secondary.dispatch(request, *args, **kwargs)
+        return super(DoubleViewMixin, self).dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **context):
+        context.update(self.secondary.context_data)
+        return super(DoubleViewMixin, self).get_context_data(**context)
+
+class AniCloudsPlotView(DoubleViewMixin, CloudsPlotView):
+    secondary_class = AniView
+    template_name = 'clouds/ani_plot.html'
+
+class AniPointsPlotView(DoubleViewMixin, PointsPlotView):
+    secondary_class = PointsView
+    template_name = 'clouds/ani_plot_line_realpoints.html'
+
+
 lines = LineListView.as_view()
 line = DetailView.as_view(model=Line)
 
 line_sidpoints = PointsView.as_view(model=SidPoint)
 line_realpoints = PointsView.as_view(model=RealPoint)
 line_realpoints_plot = PointsPlotView.as_view(model=RealPoint)
+line_realpoints_ani_plot = AniPointsPlotView.as_view(model=RealPoint)
+
 plot = CloudsPlotView.as_view()
+ani = AniView.as_view()
+plot_day = AniCloudsPlotView.as_view()
 

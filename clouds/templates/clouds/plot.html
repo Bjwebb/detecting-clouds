@@ -19,7 +19,7 @@ function plotHandleMouse(e) {
     {% if clickfunction %}
         {{clickfunction}}(xtimestamp);
     {% else %}
-        window.location = '{% block clickurl %}{% endblock %}?{%if querystring%}{{querystring}}&{%endif%}timestamp='+xtimestamp;
+        window.location = '{% block clickurl %}{% endblock %}?{%if querystring%}{{querystring|safe}}&{%endif%}timestamp='+xtimestamp;
     {% endif %}
 }
 $(function() {

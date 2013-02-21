@@ -130,6 +130,7 @@ class PointsPlotView(PlotView, PointsView):
 
 class CloudsPlotView(PlotView, TemplateView):
     template_name = 'clouds/plot.html'
+    line_minimum_points = 1
     
     def get(self, request, year=None, month=None, day=None):
         if 'timestamp' in request.GET:
@@ -151,6 +152,8 @@ class CloudsPlotView(PlotView, TemplateView):
 
         if 'column' in request.GET:
             self.gnuplot_column_no = int(request.GET['column'])
+        if 'minpoints' in request.GET:
+            self.line_minimum_points = int(request.GET['minpoints'])
         self.gnuplot_lines = 'lines' in request.GET
         self.context['mouseover'] = 'm' in request.GET
         if year:
@@ -170,7 +173,7 @@ class CloudsPlotView(PlotView, TemplateView):
         return super(CloudsPlotView, self).get(request)
 
     def get_data_file(self):
-        return open(os.path.join('out', 'sum2data'), 'r')
+        return open(os.path.join('out', 'sum'+str(self.line_minimum_points)+'data'), 'r')
 
 class AniView(ListView):
     template_name = 'clouds/ani.html'

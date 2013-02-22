@@ -74,6 +74,7 @@
 </head>
 <body>
 {% block body %}
+{% load url from future %}
 <p>
     <a href="javascript:go=true;tick()">Start</a>
     <a href="javascript:go=false;tick()">Stop</a>
@@ -85,7 +86,7 @@
 {% block imagelist %}
 {% for image in image_list %}
 <div class="image" data-timestamp="{{image.datetime|date:"U"}}" data-pk="{{image.pk}}">
-<a href="{{ MEDIA_URL }}out/fits_filtered/{{image.get_url}}.fits">
+<a href="{% url 'clouds.views.image' pk=image.pk %}">
 <img src="{{MEDIA_URL}}out/png/{{image.get_url}}.png"/></a>
 {{image.datetime|date:"H:i:s"}}
 </div>

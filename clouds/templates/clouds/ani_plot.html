@@ -20,7 +20,7 @@
     }
     function plotclick(timestamp) {
         for (i=0; i<n; i++) {
-            if (i==(n-1) || timestamp < timestamps[i]) {
+            if (i==(n-1) || timestamp < timestamps[i+1]) {
                 imgs.css('display', 'none');        
                 imgs.eq(i).show();
                 onimagechange(imgs.eq(i));

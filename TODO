@@ -12,3 +12,4 @@ Merge catmatch_tmp.py in to catmatch.py
 Check for negative fluxes
 Beware of the start/end of sidtime
 Clean up some of the early javascript variable names
+Would be nice to know if gnuplots internal format counts leapseconds

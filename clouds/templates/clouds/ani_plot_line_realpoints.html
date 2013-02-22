@@ -1,4 +1,14 @@
 {% extends 'clouds/ani_plot.html' %}
+{% load url from future %}
+
+{% block header %}
+{{block.super}}
+{% if timestamp %}
+<script type="text/javascript">
+    $(function() { plotclick({{timestamp}}); });
+</script>
+{% endif %}
+{% endblock %}
 
 {% block imagelist %}
 {% include 'pagination.html' %}
@@ -7,7 +17,7 @@
 <div class="image"
         data-timestamp="{{point.image.datetime|date:"U"}}" data-pk="{{point.image.pk}}"
         style="position: relative; height: 480px; width: 640px; left:900px;" id="{{point.pk}}">
-    <a href="{{ MEDIA_URL }}out/fits_filtered/{{point.get_url|urlencode}}.fits">
+    <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
     <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"
             style="position:absolute;
                    top:0px;

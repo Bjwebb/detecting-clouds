@@ -2,6 +2,7 @@ from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('clouds.views',
     url(r'^$', 'home'), 
+    url(r'^image/(?P<pk>\d+)$', 'image'), 
     url(r'^lines/$', 'lines'), 
     url(r'^lines/(?P<pk>\d+)/$', 'line'), 
     url(r'^lines/(?P<line>\d+)/sidpoints/$', 'line_sidpoints'), 

@@ -26,7 +26,6 @@ class LineListView(ListView):
 
 class PointsView(ListView):
     template_name = 'clouds/point_list.html'
-    paginate_by=1000
     closest = None
 
     def get_queryset(self):
@@ -40,21 +39,29 @@ class PointsView(ListView):
         if 'line' in self.kwargs:
             queryset = queryset.filter(line__pk=self.kwargs['line'])
 
-        if 'timestamp' in self.request.GET:
-            dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
-            #queryset1 = queryset.filter(image__datetime__lt=dt).order_by('-image__datetime')[0:(self.paginate_by/2)]
-            #queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:(self.paginate_by/2)]
-            queryset1 = queryset.filter(image__datetime__lt=dt).order_by('-image__datetime')[0:20]
-            queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:20]
-            self.closest = queryset1[0]
-            return list(reversed(queryset1)) + list(queryset2)
-        else:
-            queryset = queryset.order_by('pk')
 
         return queryset
 
     def get_context_data(self, **context):
         return super(PointsView, self).get_context_data(closest=self.closest, **context)
+
+class PaginatedPointsView(PointsView):
+    paginate_by=1000
+
+    def get_queryset(self):
+        queryset = super(PaginatedPointsView, self).get_queryset()
+        if 'timestamp' in self.request.GET:
+            # TODO Modify the pagination message to be clear that this isn't necessarily everything
+            dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
+            #queryset1 = queryset.filter(image__datetime__lt=dt).order_by('-image__datetime')[0:(self.paginate_by/2)]
+            #queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:(self.paginate_by/2)]
+            queryset1 = queryset.filter(image__datetime__lte=dt).order_by('-image__datetime')[0:20]
+            queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:20]
+            self.closest = queryset1[0]
+            return list(reversed(queryset1)) + list(queryset2)
+        else:
+            queryset = queryset.order_by('pk')
+        return queryset
 
 class PlotView(object):
     gnuplot_date_format = '%Y-%m-%d'
@@ -65,6 +72,8 @@ class PlotView(object):
     context = {}
 
     def get_context_data(self, **context):
+        self.gnuplot_lines = 'lines' in self.request.GET
+
         data_file = self.get_data_file()
         command_string = """
 set timefmt "%Y-%m-%d %H:%M:%S"
@@ -104,7 +113,11 @@ show variables all
                 gpval[m.group(1)] = m.group(2)
         # X_MIN X_MAX TERM_XMIN TERM_XMAX etc.
         data_file.close()
-        context.update({'imagesrc': imagesrc, 'gpval': gpval})
+
+        context.update({'imagesrc': imagesrc,
+                        'gpval': gpval,
+                        'mouseover': 'm' in self.request.GET,
+                      })
         context.update(self.context)
         return context
 
@@ -125,6 +138,8 @@ class PointsPlotView(PlotView, PointsView):
         return data_file
 
     def get_context_data(self, **context):
+        if 'timestamp' in self.request.GET:
+            context.update(timestamp=int(self.request.GET['timestamp']))
         context.update(line=self.kwargs['line'])
         return super(PointsPlotView, self).get_context_data(**context)
 
@@ -154,8 +169,6 @@ class CloudsPlotView(PlotView, TemplateView):
             self.gnuplot_column_no = int(request.GET['column'])
         if 'minpoints' in request.GET:
             self.line_minimum_points = int(request.GET['minpoints'])
-        self.gnuplot_lines = 'lines' in request.GET
-        self.context['mouseover'] = 'm' in request.GET
         if year:
             dt_from = datetime.datetime(int(year), int(month or 1), int(day or 1))
             if day:
@@ -209,15 +222,15 @@ class AniCloudsPlotView(DoubleViewMixin, CloudsPlotView):
     template_name = 'clouds/ani_plot.html'
 
 class AniPointsPlotView(DoubleViewMixin, PointsPlotView):
-    secondary_class = PointsView
+    secondary_class = PaginatedPointsView
     template_name = 'clouds/ani_plot_line_realpoints.html'
 
 
 lines = LineListView.as_view()
 line = DetailView.as_view(model=Line)
 
-line_sidpoints = PointsView.as_view(model=SidPoint)
-line_realpoints = PointsView.as_view(model=RealPoint)
+line_sidpoints = PaginatedPointsView.as_view(model=SidPoint)
+line_realpoints = PaginatedPointsView.as_view(model=RealPoint)
 line_realpoints_plot = PointsPlotView.as_view(model=RealPoint)
 line_realpoints_ani_plot = AniPointsPlotView.as_view(model=RealPoint)
 
@@ -225,3 +238,4 @@ plot = CloudsPlotView.as_view()
 ani = AniView.as_view()
 plot_day = AniCloudsPlotView.as_view()
 
+image = DetailView.as_view(model=Image)

@@ -9,6 +9,7 @@ class SidTime(models.Model):
 class Line(models.Model):
     average_flux = models.FloatField(default=0.0)
     max_flux = models.FloatField(default=0.0)
+    stddev_flux = models.FloatField(default=0.0)
     realpoint_count = models.IntegerField(default=0)
 
 class Point(models.Model):

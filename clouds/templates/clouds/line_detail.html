@@ -24,8 +24,9 @@ th { text-align: right }
 <tr>
     <th>
         <a href="{% url 'clouds.views.line_realpoints' line=line.pk %}">
-            Realpoints
-        </a>
+            Realpoints</a>
+        <a href="{% url 'clouds.views.line_realpoints_plot' line=line.pk %}">
+            (plot)</a>
     </th>
     <td>{{ line.realpoint_set.count }}</td>
 </tr>

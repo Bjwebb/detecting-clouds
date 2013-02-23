@@ -73,6 +73,11 @@ class PlotView(object):
 
     def get_context_data(self, **context):
         self.gnuplot_lines = 'lines' in self.request.GET
+        if 'w' in self.request.GET and 'h' in self.request.GET:
+            self.gnuplot_size = '{0},{1}'.format(
+                int(self.request.GET['w']),
+                int(self.request.GET['h'])
+            )
 
         data_file = self.get_data_file()
         command_string = """
@@ -191,6 +196,7 @@ class CloudsPlotView(PlotView, TemplateView):
 class AniView(ListView):
     template_name = 'clouds/ani.html'
     def get_queryset(self):
+
         dt_args = map(int, self.args)
         dt_from = datetime.datetime(*dt_args)
         dt_to = dt_from + datetime.timedelta(days=1)
@@ -204,17 +210,17 @@ class DoubleViewMixin(object):
         out = super(DoubleViewMixin, self).__init__(**kwargs)
         class OutputlessSeconary(self.secondary_class):
             def get(self, request, *args, **kwargs):
-                self.context_data = self.get_context_data(
+                return self.get_context_data(
                         object_list=self.get_queryset(), **kwargs)
-        self.secondary = OutputlessSeconary(**kwargs)
+        self.secondary = OutputlessSeconary.as_view(**kwargs)
         return out
     
     def dispatch(self, request, *args, **kwargs):
-        self.secondary.dispatch(request, *args, **kwargs)
+        self.secondary_context_data = self.secondary(request, *args, **kwargs)
         return super(DoubleViewMixin, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **context):
-        context.update(self.secondary.context_data)
+        context.update(self.secondary_context_data)
         return super(DoubleViewMixin, self).get_context_data(**context)
 
 class AniCloudsPlotView(DoubleViewMixin, CloudsPlotView):

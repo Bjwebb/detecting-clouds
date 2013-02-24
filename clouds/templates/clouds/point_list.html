@@ -23,9 +23,9 @@ window.location.hash = '{{closest.pk}}';
         {% endcomment %}
     </div>
     {% if point.image %}
-    <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
+        <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
     {% else %}
-    <a href="">
+        <a href=""></a>
     {% endif %}
     <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"
             style="position:absolute;

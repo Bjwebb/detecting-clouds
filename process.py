@@ -40,11 +40,13 @@ def join(*args):
     ensure_dir_exists(os.path.join(*args[:-1])) 
     return os.path.join(*args)
 
-remove_saturated = numpy.vectorize(lambda x: 0 if x < 0 or x > 65000 else x)
+# Doing this to keep sextractor happy
+n32 = numpy.int32
+remove_saturated = numpy.vectorize(lambda x: n32(0) if x < n32(0) or x > n32(65000) else x)
 def flatten_max(max):
     return numpy.vectorize(lambda x: x if x < max else max)
 
-def output(path, name, data, do_filter=False, image=False, extract=True, outdir='out', image_filter=flatten_max(5000)):
+def output(path, name, data, do_filter=False, image=False, extract=True, outdir='out', image_filter=flatten_max(5000), verbose=False):
     if do_filter:
         filtered_file = join(outdir, 'fits_filtered',path, name+'.fits')
         if os.path.isfile(filtered_file):
@@ -54,16 +56,40 @@ def output(path, name, data, do_filter=False, image=False, extract=True, outdir=
         if extract:
             extfile = join(outdir, 'fits_filtered','extracted',path, name+'.fits')
             with open(os.devnull) as shutup:
-                subprocess.call(['sextractor','-c','test.sex',filtered_file], stdout=shutup, stderr=shutup)
+                if verbose:
+                    subprocess.call(['sextractor','-c','test.sex',filtered_file])
+                else:
+                    subprocess.call(['sextractor','-c','test.sex',filtered_file], stdout=shutup, stderr=shutup)
             shutil.move('check.fits', extfile)
             shutil.move('test.cat', join(outdir, 'cat', path, name+'.cat')) 
             output(os.path.join('extracted',path),
                    name,
                    pyfits.getdata(extfile, 0),
-                   image=True, outdir=outdir)
+                   image=True, outdir=outdir, verbose=verbose)
     if image:
         img = smp.toimage(image_filter(data))
         img.save(join(outdir,'png',path, name+'.png'))
+
+def open_fits(fname):
+    hdulist = pyfits.open(fname, do_not_scale_image_data=True)
+    hdu = hdulist[0] 
+    data = hdu.data
+    
+    try:
+        date_obs = hdu.header['DATE-OBS'] 
+    except:
+        date_obs = None
+    
+    # Scale the image manually in order to use integers, not floats
+    if 'BSCALE' in hdu.header and 'BZERO' in hdu.header:
+        assert(hdu.header['BSCALE'] == 1)
+        # Cast to ensure data is int32s
+        # Otherwise it would depend on architecture, and
+        # sextractor does not like 64 bit fits files.
+        bzero = numpy.int32(hdu.header['BZERO'])
+        data = numpy.vectorize(lambda x: x+bzero)(data)
+    
+    return date_obs, data
 
 def process_night(orig_path,
                   files,
@@ -74,7 +100,8 @@ def process_night(orig_path,
                   extraf=None,
                   outdir='out',
                   out_path=None,
-                  total=False):
+                  total=False,
+                  verbose=False):
     if total:
         night = []
     if do_diff:
@@ -84,27 +111,14 @@ def process_night(orig_path,
         if not name.endswith('.fits'):
             continue
         fname = os.path.join(orig_path, name)
-        hdulist = pyfits.open(fname, do_not_scale_image_data=True)
-        hdu = hdulist[0] 
-        data = hdu.data
-        
-        try:
-            date_obs = hdu.header['DATE-OBS'] 
-        except:
-            date_obs = name
+        date_obs, data = open_fits(fname) 
+        if not date_obs:
+            date_obs = path
+
         if not out_path:
             out_path = new_path_from_datestamp(date_obs)
         out_name = date_obs
 
-        # Scale the image manually in order to use integers, not floats
-        if 'BSCALE' in hdu.header and 'BZERO' in hdu.header:
-            assert(hdu.header['BSCALE'] == 1)
-            # Cast to ensure data is int32s
-            # Otherwise it would depend on architecture, and
-            # sextractor does not like 64 bit fits files.
-            bzero = numpy.int32(hdu.header['BZERO'])
-            data = numpy.vectorize(lambda x: x+bzero)(data)
-        
         if do_diff:
             if prevdata is not None:
                 if do_filter:
@@ -114,7 +128,8 @@ def process_night(orig_path,
                 if do_output:
                     output(os.path.join('diff',out_path),
                            out_name,
-                           data_diff, do_filter, image, True, outdir)
+                           data_diff, do_filter, image, True, outdir,
+                           verbose=verbose)
             prevdata = data
 
         if do_filter:
@@ -126,7 +141,7 @@ def process_night(orig_path,
         if do_output:
             # FIXME
             # pass
-            output(out_path, out_name, data, do_filter, image, True, outdir)
+            output(out_path, out_name, data, do_filter, image, True, outdir, verbose=verbose)
     if total and night:
         try:
             tdata = reduce(add, night)
@@ -135,7 +150,7 @@ def process_night(orig_path,
             print e
             return
         output(out_path, 'total', tdata, do_filter, image, True, outdir,
-            image_filter=flatten_max(5000*len(night)))
+            image_filter=flatten_max(2000*len(night)), verbose=verbose)
 
 def generate_out(orig_path, outdir='out', use_path=False):
     for (path, subdirs, files) in os.walk(orig_path):

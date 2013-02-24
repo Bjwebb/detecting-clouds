@@ -11,6 +11,7 @@ class Line(models.Model):
     max_flux = models.FloatField(default=0.0)
     stddev_flux = models.FloatField(default=0.0)
     realpoint_count = models.IntegerField(default=0)
+    sidpoint_count = models.IntegerField(default=0)
 
 class Point(models.Model):
     class Meta:

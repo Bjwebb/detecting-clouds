@@ -25,17 +25,9 @@ for (path, subdirs, files) in os.walk(catdir):
         image.save()
         print sidtime
         
-        try:
-            df = pandas.read_csv(os.path.join(path, fname), delim_whitespace=True, comment='#', header=None, skiprows=11)
-        except ZeroDivisionError:
-            # This is thrown if there are no lines in the file
+        points = parse_cat(os.path.join(path, fname))
+        if not points:
             continue
-
-        # Exclude object larger than 10 pixels
-        df = df[ (df[7]-df[5]) < 10 ]
-        df = df[ (df[8]-df[6]) < 10 ]
-
-        points = pandas.DataFrame({ 'x': df[9], 'y': df[10], 'f': df[3] })
 
         sidpoints = SidPoint.objects.filter(sidtime=sidtime).all()
         taken_sidpoint_ids = {}
@@ -62,7 +54,7 @@ for (path, subdirs, files) in os.walk(catdir):
                 use_sidpoint = False
 
             realpoint = RealPoint(x=point['x'], y=point['y'],
-                flux=point['f'],
+                flux=point['flux'],
                 idx=i, image=image) 
             if use_sidpoint:
                 realpoint.sidpoint = sidpoint

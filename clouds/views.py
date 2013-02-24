@@ -9,19 +9,30 @@ from django.core.urlresolvers import reverse
 import datetime
 import hashlib
 
-def home(request):
-    return HttpResponse('This page intentionally left blank.')
-
 class LineListView(ListView):
     paginate_by=100
 
     def get_queryset(self):
         queryset = Line.objects.order_by('pk')
+        if 'ratio' in self.request.GET:
+            queryset = Line.objects.filter(max_flux__gt=0, stddev_flux__gt=0).extra(select={'ratio':'stddev_flux/max_flux'})
+
         if 'filter' in self.request.GET:
+            try:
+                minpoints = int(self.request.GET['minpoints'])
+            except KeyError:
+                minpoints = 20
             if self.request.GET['filter'] == 'sid':
-                queryset = queryset.annotate(Count('sidpoint')).filter(sidpoint__count__gt=20) 
+                queryset = queryset.annotate(Count('sidpoint')).filter(sidpoint__count__gt=minpoints) 
             elif self.request.GET['filter'] == 'real':
-                queryset = queryset.annotate(Count('realpoint')).filter(realpoint__count__gt=20) 
+                queryset = queryset.annotate(Count('realpoint')).filter(realpoint__count__gt=minpoints) 
+
+        if 'order' in self.request.GET:
+            field = self.request.GET['order']
+            fields = ['id', 'pk', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint__count', 'realpoint__count']
+            if field in fields + map(lambda x:'-'+x, fields):
+                queryset = queryset.order_by(field)
+
         return queryset
 
 class PointsView(ListView):
@@ -231,6 +242,7 @@ class AniPointsPlotView(DoubleViewMixin, PointsPlotView):
     secondary_class = PaginatedPointsView
     template_name = 'clouds/ani_plot_line_realpoints.html'
 
+home = TemplateView.as_view(template_name='clouds/home.html')
 
 lines = LineListView.as_view()
 line = DetailView.as_view(model=Line)

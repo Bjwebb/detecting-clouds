@@ -10,9 +10,16 @@ td { text-align: right }
 <table>
 <tr>
     <th>ID</th>
-    <th>Average Flux</th>
-    <th>Sidpointis</th>
+    <th>Sidpoints</th>
     <th>Realpoints</th>
+    <th>Average Flux</th>
+    <th>Max Flux</th>
+    <th>StdDev Flux</th>
+    {% with line_list|first as line %}
+    {% if line.ratio %}
+        <th>Ratio</th>
+    {% endif %}
+    {% endwith %}
 </tr>
 {% for line in line_list %}
 <tr>
@@ -21,9 +28,14 @@ td { text-align: right }
             {{ line.pk }}
         </a>
     </td>
-    <td>{{ line.average_flux }}</td>
     <td>{{ line.sidpoint_set.count }}</td>
     <td>{{ line.realpoint_set.count }}</td>
+    <td>{{ line.average_flux }}</td>
+    <td>{{ line.max_flux }}</td>
+    <td>{{ line.stddev_flux }}</td>
+    {% if line.ratio %}
+        <td>{{ line.ratio }}</td>
+    {% endif %}
 </tr>
 {% endfor %}
 </table>

@@ -6,7 +6,8 @@ from operator import add
 from functools import partial
 import scipy.misc.pilutil as smp
 import sys, os, shutil, subprocess
-import errno, json
+import json, tempfile
+import errno
 
 from django.core.management import setup_environ
 import clouds.settings
@@ -14,6 +15,9 @@ setup_environ(clouds.settings)
 from clouds.models import Image
 
 from multiprocessing import Pool
+
+
+from utils import join
 
 def path_split(path):
     l = []
@@ -25,50 +29,13 @@ def path_split(path):
 def get_subdir(path):
     return os.path.join(*path_split(path)[2:])
 
-def new_path_from_datestamp(date_obs):
-    return os.path.join(date_obs[0:4], date_obs[5:7], date_obs[8:10])
 
-def ensure_dir_exists(path):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
-# Calls os.path.join, but also ensures the directory exists
-def join(*args):
-    ensure_dir_exists(os.path.join(*args[:-1])) 
-    return os.path.join(*args)
-
-# Doing this to keep sextractor happy
+# Doing this to keep sextractor happy, see note in open_fits
 n32 = numpy.int32
 remove_saturated = numpy.vectorize(lambda x: n32(0) if x < n32(0) or x > n32(65000) else x)
 def flatten_max(max):
     return numpy.vectorize(lambda x: x if x < max else max)
-
-def output(path, name, data, do_filter=False, image=False, extract=True, outdir='out', image_filter=flatten_max(5000), verbose=False):
-    if do_filter:
-        filtered_file = join(outdir, 'fits_filtered',path, name+'.fits')
-        if os.path.isfile(filtered_file):
-            os.remove(filtered_file)
-        pyfits.writeto(filtered_file, data) 
-
-        if extract:
-            extfile = join(outdir, 'fits_filtered','extracted',path, name+'.fits')
-            with open(os.devnull) as shutup:
-                if verbose:
-                    subprocess.call(['sextractor','-c','test.sex',filtered_file])
-                else:
-                    subprocess.call(['sextractor','-c','test.sex',filtered_file], stdout=shutup, stderr=shutup)
-            shutil.move('check.fits', extfile)
-            shutil.move('test.cat', join(outdir, 'cat', path, name+'.cat')) 
-            output(os.path.join('extracted',path),
-                   name,
-                   pyfits.getdata(extfile, 0),
-                   image=True, outdir=outdir, verbose=verbose)
-    if image:
-        img = smp.toimage(image_filter(data))
-        img.save(join(outdir,'png',path, name+'.png'))
 
 def open_fits(fname):
     hdulist = pyfits.open(fname, do_not_scale_image_data=True)
@@ -89,37 +56,85 @@ def open_fits(fname):
         bzero = numpy.int32(hdu.header['BZERO'])
         data = numpy.vectorize(lambda x: x+bzero)(data)
     
-    return date_obs, data
+    return data
 
-def process_night(orig_path,
-                  files,
-                  do_filter=True,
-                  image=True,
-                  do_output=True,
-                  do_diff=True,
-                  extraf=None,
-                  outdir='out',
-                  out_path=None,
-                  total=False,
-                  verbose=False):
-    if total:
-        night = []
-    if do_diff:
-        prevdata = None
+class DataProcessor():
+    indir = 'sym'
+    outdir = 'out'
+    do_total = False
+    do_image = True
+    do_diff = False
+    do_output = True
+    do_filter = True
+    do_extract = True
+    verbose = False
+    resume = True
+    log = None
+    do_sum = False
+    do_sum_db = False
 
-    for name in files:
-        if not name.endswith('.fits'):
-            continue
-        fname = os.path.join(orig_path, name)
-        date_obs, data = open_fits(fname) 
-        if not date_obs:
-            date_obs = path
 
-        if not out_path:
-            out_path = new_path_from_datestamp(date_obs)
-        out_name = date_obs
+    def __init__(self, **kwargs):
+        new_args = dict((k,v) for (k,v) in kwargs.iteritems() if v is not None)
+        
+        if new_args.get('do_sum_db'):
+            new_args['do_sum'] = True
+        if new_args.get('do_sum'):
+            self.__dict__.update(
+                image=False,
+                do_output=False,
+                do_diff=False,
+                do_filter=False,
+            )
 
-        if do_diff:
+        self.__dict__.update(new_args)
+
+
+    def extract(self, path, in_file):
+        checkfile = join(self.outdir,'extracted',path+'.fits')
+        catfile = join(self.outdir, 'cat', path+'.cat') 
+        sex_file = tempfile.NamedTemporaryFile()
+        sex_file.write(open('test.sex').read().format(catfile, checkfile))
+        sex_file.flush()
+        sex_file.seek(0)
+        with open(os.devnull) as shutup:
+            if self.verbose:
+                command = ['sextractor','-c',sex_file.name,in_file]
+                print ' '.join(command)
+                subprocess.call(command)
+            else:
+                subprocess.call(['sextractor','-c',sex_file.name,in_file], stdout=shutup, stderr=shutup)
+        self.png(os.path.join('extracted',path),
+               pyfits.getdata(checkfile, 0))
+
+
+    def png(self, path, data, image_filter=flatten_max(5000)):
+        img = smp.toimage(image_filter(data))
+        img.save(join(self.outdir,'png',path+'.png'))
+
+
+    def output(self, path, data, **kwargs):
+        if self.do_filter:
+            filtered_file = join(self.outdir, 'fits_filtered',path+'.fits')
+            if os.path.isfile(filtered_file):
+                os.remove(filtered_file)
+            pyfits.writeto(filtered_file, data) 
+
+            if self.do_extract:
+                self.extract(path, filtered_file)
+
+        if self.do_image:
+            self.png(path, data, **kwargs)
+
+
+    def process_file(self, path):
+        if not path.endswith('.fits'):
+            return
+        out_path = path[:-5]
+        
+        data = open_fits(path) 
+
+        if self.do_diff:
             if prevdata is not None:
                 if do_filter:
                     data_diff = remove_saturated( data - prevdata )
@@ -130,150 +145,122 @@ def process_night(orig_path,
                            out_name,
                            data_diff, do_filter, image, True, outdir,
                            verbose=verbose)
-            prevdata = data
 
-        if do_filter:
+        if self.do_filter:
             data = remove_saturated(data)
-        if total and numpy.sum(data, dtype=numpy.int64) < 2*(10**8):
-            night.append(data)
-        if extraf:
-            extraf(name, data)
-        if do_output:
-            # FIXME
-            # pass
-            output(out_path, out_name, data, do_filter, image, True, outdir, verbose=verbose)
-    if total and night:
-        try:
-            tdata = reduce(add, night)
-        except ValueError, e:
-            print "Encountered an error in ", orig_path
-            print e
-            return
-        output(out_path, 'total', tdata, do_filter, image, True, outdir,
-            image_filter=flatten_max(2000*len(night)), verbose=verbose)
+        if self.do_total and numpy.sum(data, dtype=numpy.int64) < 2*(10**8):
+            self.night.append(data)
 
-def generate_out(orig_path, outdir='out', use_path=False):
-    for (path, subdirs, files) in os.walk(orig_path):
-        if use_path:
-            out_path = path
-        else:
-            out_path = None
-        subdirs.sort()
-        files.sort()
-        process_night(path,
-                      files,
-                      do_diff=False,
-                      outdir=outdir,
-                      out_path=out_path)
-                      #total=True) # FIXME
-
-def tuple_magic(*args, **kwargs):
-    return (args, kwargs)
-
-def process_night_sum((args,kwargs)):
-    def do_sum_plot(name, data):
-        # This is broken due to the above
-        print days(name[:-5]), numpy.sum(data, dtype=numpy.int64)
-    def do_sum_json(name, data):
-        meta[name[:-5]] =  int(numpy.sum(data, dtype=numpy.int64))
-    def do_sum_db(name, data):
-        dt = dateutil.parser.parse(name.split('.')[0])
-        print dt
-        image = Image.objects.get(datetime=dt)
-        image.intensity = numpy.sum(data, dtype=numpy.int64)
-        image.save()
-    do_json = False # FIXME
-    do_sum = do_sum_db
-    kwargs['extraf'] = do_sum
-    if do_json:
-        meta = {}
-    out = process_night(*args, **kwargs)
-    if do_json:
-        json.dump(meta,
-            open(join('out','meta',get_subdir(path),'sum.json'),'w'))
-    return out
-
-def generate_sum(orig_path):
-    def days(d):
-        # This is borken now, due to switching to tree walking
-        return day + float(d[8:10])/24 + float(d[10:12])/(24*60)
-    
-    pool = Pool(processes=4)
-
-    """
-    do_json = True # FIXME
-    do_sum = do_sum_json
-    """
-    
-    nights = []
-    for (path, subdirs, files) in os.walk(orig_path):
-        subdirs.sort()
-        files.sort()
+        if self.do_output:
+            self.output(out_path, data)
         
-        nights.append( 
-          tuple_magic(path,
-                      files,
-                      image=False,
-                      do_output=False,
-                      do_diff=False,
-                      do_filter=False,
-                      ))
-    pool.map(process_night_sum, nights)
+        if self.do_sum:
+            dt = dateutil.parser.parse(os.path.basename(path).split('.')[0])
+            intensity = numpy.sum(data, dtype=numpy.int64)
+            print dt, intensity
+            if self.do_sum_db:
+                image = Image.objects.get(datetime=dt)
+                image.intensity = intensity 
+                image.save()
+        return data
 
 
-def generate_symlinks(orig_path, outdir='sym'):
-    for (path, subdirs, files) in os.walk(orig_path):
+    def process_night(self, path, files):
+        if self.do_total:
+            self.night = []
+        if self.do_diff:
+            self.prevdata = None
+
         for name in files:
-            if not name.endswith('.fits'):
-                continue
-            fname = os.path.join(path, name)
-            hdulist = pyfits.open(fname, do_not_scale_image_data=True)
-            hdu = hdulist[0] 
-            date_obs = hdu.header['DATE-OBS'] 
-            os.symlink(os.path.abspath(fname),
-                join(outdir,
-                    new_path_from_datestamp(date_obs),
-                    date_obs+'.fits'))
 
-def datetime_mod(dt, divisor):
-    n = int(dt.total_seconds() / divisor.total_seconds())
-    return dt - n*divisor
+            self.process_file(os.path.join(path, name))
 
-def get_sidereal_time(dt):
-    sidzero = datetime.datetime(2011,1,1)
-    sidday = datetime.timedelta(hours=23.9344699)
-    return datetime_mod(dt-sidzero, sidday)
+        if self.do_total and self.night:
+            try:
+                tdata = reduce(add, self.night)
+            except ValueError, e:
+                print "Encountered an error in ", indir
+                print e
+                return
+            output(os.path.join(path, 'total'), tdata,
+                image_filter=flatten_max(2000*len(night)))
+        
+        if self.log:
+            logfile = open(self.log, 'a')
+            logfile.write(path+'\n')
+            logfile.close()
 
-def groupby_sidereal_time():
-    orig_path = 'sym'
-    for (path, subdirs, files) in os.walk(orig_path):
-        subdirs.sort()
-        files.sort()
-        for fname in files:
-            dt = dateutil.parser.parse(fname.split('.')[0])
-            sidtime = get_sidereal_time(dt)
-            os.symlink(
-                os.path.abspath(os.path.realpath(os.path.join(path,fname))),
-                join('sid',
-                    str(sidtime.seconds/3600).zfill(2),
-                    str((sidtime.seconds/60)%60).zfill(2),
-                    fname))
+
+    def list_nights(self):
+        prev_nights = {}
+        try:
+            if self.resume:
+                if not self.log:
+                    print 'You must specify a log file in order to resume.'
+                    sys.exit(1)
+                prev_nights = open(self.log).read().splitlines()
+            elif self.log:
+                os.remove(self.log)
+        except IOError, e:
+            if e.errno != errno.EEXIST:
+                raise e
+        print prev_nights
+
+        for (path, subdirs, files) in os.walk(self.indir):
+            subdirs.sort()
+            files.sort()
+            if not path in prev_nights:
+                yield(path,files)
+
+
+    def process(self):
+        for args in self.list_nights():
+            self.process_night(*args)
+
+
+
+def init(args_dict):
+    global dp
+    dp = DataProcessor(**args_dict)
+
+
+class ExitError(Exception):
+    pass
+
+
+def process_night(args):
+    global dp
+    try:
+        dp.process_night(*args)
+    except KeyboardInterrupt:
+        raise ExitError
+
 
 if __name__ == '__main__':
-    orig_path = 'www.mrao.cam.ac.uk/~dfb/allsky'
-    if len(sys.argv) > 2:
-        orig_path = sys.argv[2]
+    import argparse
 
-    if len(sys.argv) <= 1:
-        print "Usage python process.py (out|sum|sym) [orig_path]"
-    elif sys.argv[1] == 'out':
-        generate_out(orig_path, use_path=True)
-    elif sys.argv[1] == 'sum':
-        generate_sum(orig_path)
-    elif sys.argv[1] == 'sym':
-        if len(sys.argv) > 3:
-            generate_symlinks(orig_path, sys.argv[3])
-        else:
-            generate_symlinks(orig_path)
-    elif sys.argv[1] == 'sid':
-        groupby_sidereal_time()
+    parser = argparse.ArgumentParser(description='Process some all sky fits data')
+    parser.add_argument('--indir', '-i')
+    parser.add_argument('--outdir', '-o') 
+    parser.add_argument('--verbose', '-v', action='store_true') 
+    parser.add_argument('--multi', '-m', action='store_true') 
+    parser.add_argument('--log', '-l')
+    parser.add_argument('--continue', '-c', dest='resume', action='store_true') 
+    for arg in ['total', 'image', 'diff', 'output', 'filter', 'extract']:
+        parser.add_argument('--'+arg, dest='do_'+arg, action='store_true') 
+        parser.add_argument('--no-'+arg, dest='do_'+arg, action='store_false') 
+    parser.add_argument('--sum', '-s', dest='do_sum', action='store_true')
+    parser.add_argument('--sum-db', '-sd', dest='do_sum', action='store_true')
+
+    args = parser.parse_args()
+        
+
+    args_dict = vars(args)
+    dp = DataProcessor(**args_dict)
+    if dp.multi:
+        from multiprocessing import Pool
+        pool = Pool(4, init, (args_dict,))
+        pool.map(process_night, dp.list_nights())
+    else:
+        dp.process()
+

@@ -1,17 +1,11 @@
-Maybe get some proper commandline argument handling
-Use temporary files properly
-FIXME fix hardcoded params
 (lb) Beware final sidtime minute etc.
 Currently finding 'sidtime' by rounding down....
 (lb) Sort out them smudges
 Deal with float BSCALE in a nicer way
-Check what's happening with timezones
-Do multiprocessing consistently
 Investigate whether the Milky Way is acting like a cloud
 Merge catmatch_tmp.py in to catmatch.py
 Check for negative fluxes
 Beware of the start/end of sidtime
 Clean up some of the early javascript variable names
 Would be nice to know if gnuplots internal format counts leapseconds
-Make process.py more objecty
 Fix inconsistency of nameing of Line's fields

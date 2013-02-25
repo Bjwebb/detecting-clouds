@@ -20,7 +20,7 @@ dt = dateutil.parser.parse(name.split('.')[0])
 s = get_sidereal_time(dt).seconds
 path_end = os.path.join(*[ unicode(x).zfill(2) for x in [ s/3600, (s/60)%60 ] ])
 fname = os.path.join('out', 'fits_filtered', 'sid', path_end, 'total.fits')
-fake_date_obs, tdata = open_fits(fname)
+tdata = open_fits(fname)
 night = os.listdir(os.path.join('sid', path_end))
 
 for i in [100, 250, 500, 1000, 3000, 4000, 5000, 2000]:

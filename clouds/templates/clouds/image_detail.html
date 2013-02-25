@@ -1,3 +1,17 @@
+{% load url from future %}
+<h2>
+
+    {% with image.datetime|date:"Y" as year and image.datetime|date:"m" as month and image.datetime|date:"d" as day %}
+        <a href="{% url 'clouds.views.plot' year %}">
+            {{year}}</a> /
+        <a href="{% url 'clouds.views.plot' year month %}">
+            {{month}}</a> /
+        <a href="{% url 'clouds.views.plot_day' year month day %}">
+            {{day}}</a>
+    {% endwith %}
+    {{image.datetime|date:"H:i"}}
+</h2>
+
 {% include 'clouds/image.html' with point_list=image.realpoint_set.all %}
 
 

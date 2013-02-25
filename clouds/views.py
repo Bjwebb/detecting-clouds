@@ -23,13 +23,13 @@ class LineListView(ListView):
             except KeyError:
                 minpoints = 20
             if self.request.GET['filter'] == 'sid':
-                queryset = queryset.annotate(Count('sidpoint')).filter(sidpoint__count__gt=minpoints) 
+                queryset = queryset.filter(sidpoint_count__gt=minpoints) 
             elif self.request.GET['filter'] == 'real':
-                queryset = queryset.annotate(Count('realpoint')).filter(realpoint__count__gt=minpoints) 
+                queryset = queryset.filter(realpoint_count__gt=minpoints) 
 
         if 'order' in self.request.GET:
             field = self.request.GET['order']
-            fields = ['id', 'pk', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint__count', 'realpoint__count']
+            fields = ['id', 'pk', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
             if field in fields + map(lambda x:'-'+x, fields):
                 queryset = queryset.order_by(field)
 
@@ -50,11 +50,11 @@ class PointsView(ListView):
         if 'line' in self.kwargs:
             queryset = queryset.filter(line__pk=self.kwargs['line'])
 
-
         return queryset
 
     def get_context_data(self, **context):
-        return super(PointsView, self).get_context_data(closest=self.closest, **context)
+        context.update(closest=self.closest)
+        return super(PointsView, self).get_context_data(**context)
 
 class PaginatedPointsView(PointsView):
     paginate_by=1000
@@ -142,26 +142,30 @@ class PointsPlotView(PlotView, PointsView):
 
     def get_data_file(self):
         data_file = tempfile.NamedTemporaryFile()
+        active_only = not 'all' in self.request.GET 
+        inactive_only = 'inactive' in self.request.GET
         for point in self.object_list:
-            if self.model == RealPoint:
-                data_file.write(unicode(point.image.datetime))
-            else:
-                data_file.write(unicode(point.sidtime.time))
-            data_file.write(' ')
-            data_file.write(unicode(point.flux))
-            data_file.write('\n')
-            data_file.flush()
+            if ((not active_only and not inactive_only)
+             or (active_only and point.active)
+             or (inactive_only and not point.active)):
+                if self.model == RealPoint:
+                    data_file.write(unicode(point.image.datetime))
+                else:
+                    data_file.write(unicode(point.sidtime.time))
+                data_file.write(' ')
+                data_file.write(unicode(point.flux))
+                data_file.write('\n')
+                data_file.flush()
         return data_file
 
     def get_context_data(self, **context):
         if 'timestamp' in self.request.GET:
-            context.update(timestamp=int(self.request.GET['timestamp']))
+            context.update(timestamp=int(self.request.GET['timestamp'].split('.')[0]))
         context.update(line=self.kwargs['line'])
         return super(PointsPlotView, self).get_context_data(**context)
 
 class CloudsPlotView(PlotView, TemplateView):
     template_name = 'clouds/plot.html'
-    line_minimum_points = 1
     
     def get(self, request, year=None, month=None, day=None):
         if 'timestamp' in request.GET:
@@ -181,10 +185,6 @@ class CloudsPlotView(PlotView, TemplateView):
             return HttpResponseRedirect(reverse('clouds.views.plot'+suffix, args=args)+'?'+q.urlencode())
         self.context['querystring'] = request.GET.urlencode()
 
-        if 'column' in request.GET:
-            self.gnuplot_column_no = int(request.GET['column'])
-        if 'minpoints' in request.GET:
-            self.line_minimum_points = int(request.GET['minpoints'])
         if year:
             dt_from = datetime.datetime(int(year), int(month or 1), int(day or 1))
             if day:
@@ -197,12 +197,21 @@ class CloudsPlotView(PlotView, TemplateView):
                     dt_to = datetime.datetime(int(year), int(month)+1, 1)
             else:
                 dt_to = datetime.datetime(int(year)+1, 1, 1)
+
             self.extra_commands = """set xrange ['{0}':'{1}']""".format(
                     dt_from, dt_to)
+
+        if 'column' in request.GET:
+            self.gnuplot_column_no = int(request.GET['column'])
+
         return super(CloudsPlotView, self).get(request)
 
     def get_data_file(self):
-        return open(os.path.join('out', 'sum'+str(self.line_minimum_points)+'data'), 'r')
+        if 'minpoints' in self.request.GET:
+            minpoints = int(self.request.GET['minpoints'])
+        else: minpoints = 1
+        datafilename = 'sum'+str(minpoints)+'data' + ('_infsig' if 'infsig' in self.request.GET else '')
+        return open(os.path.join('out', datafilename), 'r')
 
 class AniView(ListView):
     template_name = 'clouds/ani.html'
@@ -241,6 +250,14 @@ class AniCloudsPlotView(DoubleViewMixin, CloudsPlotView):
 class AniPointsPlotView(DoubleViewMixin, PointsPlotView):
     secondary_class = PaginatedPointsView
     template_name = 'clouds/ani_plot_line_realpoints.html'
+
+    def get_context_data(self, **context):
+        if 'zoom' in self.request.GET:
+            self.extra_commands = """set xrange ['{0}':'{1}']""".format(
+                    self.secondary_context_data['object_list'][0].image.datetime,
+                    self.secondary_context_data['object_list'][-1].image.datetime)
+            self.gnuplot_date_format = '%H:%M'
+        return super(AniPointsPlotView, self).get_context_data(**context)
 
 home = TemplateView.as_view(template_name='clouds/home.html')
 

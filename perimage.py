@@ -13,15 +13,7 @@ def scale(n):
     except TypeError:
         return 0.0
 
-year = int(sys.argv[1])
-month = int(sys.argv[2])
-#data = open(os.path.join('out', 'sum', sys.argv[1]+sys.argv[2].zfill(2)), 'w')
-if month == 12:
-    tomonth = 1
-    toyear = year+1
-else:
-    tomonth = month+1
-    toyear = year
+
 
 """
 for image in Image.objects.filter(
@@ -57,54 +49,80 @@ for image in Image.objects.filter(
     sys.stdout.flush()
 """
 
-minimum_points = 1
-try:
-    os.mkdir(os.path.join('out', 'sum'+str(minimum_points)))
-except OSError:
-    pass
-data = open(os.path.join('out', 'sum'+str(minimum_points), sys.argv[1]+sys.argv[2].zfill(2)), 'w')
+def permonth(year, month, minimum_points=1):
+    if month == 12:
+        tomonth = 1
+        toyear = year+1
+    else:
+        tomonth = month+1
+        toyear = year
 
-for image in Image.objects.filter(
-            datetime__gt=datetime.datetime(year,month,1),
-            datetime__lt=datetime.datetime(toyear,tomonth,1)).order_by('datetime'
-                ).annotate(Sum('realpoint__flux')
-                ).annotate(Count('realpoint')
-                ).annotate(Sum('realpoint__flux')
-                ):
-    realpoints = image.realpoint_set.filter(sidpoint__isnull=False).filter(
-        line__average_flux__gt=0.0, line__realpoint_count__gt=minimum_points)
-    realflux = realpoints.aggregate(Sum('flux'))['flux__sum'] or 0.0
-    sidlineaverageflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__average_flux'))['line__average_flux__sum'] 
-    sidlinemaxflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__max_flux'))['line__max_flux__sum'] 
-    out = [
-        # 1
-        image.datetime,
-        # 3
-        realflux/sidlinemaxflux,
-        # 4
-        realflux/sidlineaverageflux,
-        # 5
-        image.realpoint__count,
-        # 6
-        len(realpoints),
-        # 7
-        image.sidtime.sidpoint_set.count(),
-        # 8
-        scale(image.realpoint__flux__sum),
-        # 9
-        realflux,
-        # 10
-        image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
-        # 11
-        realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
-        # 12
-        sidlinemaxflux,
-        # 13
-        sidlineaverageflux,
-    ]
-    data.write( u' '.join(map(unicode, out))+u'\n' )
-    data.flush()
-    sys.stdout.write('.')
-    sys.stdout.flush()
+    try:
+        os.mkdir(os.path.join('out', 'sum'+str(minimum_points)))
+    except OSError:
+        pass
+    data = open(os.path.join('out', 'sum'+str(minimum_points), str(year)+str(month).zfill(2)), 'w')
 
+    for image in Image.objects.filter(
+                datetime__gt=datetime.datetime(year,month,1),
+                datetime__lt=datetime.datetime(toyear,tomonth,1)).order_by('datetime'
+                    ).annotate(Sum('realpoint__flux')
+                    ).annotate(Count('realpoint')
+                    ).annotate(Sum('realpoint__flux')
+                    ):
+        realpoints = image.realpoint_set.filter(sidpoint__isnull=False).filter(
+            line__average_flux__gt=0.0, line__realpoint_count__gt=minimum_points, active=True)
+        realflux = realpoints.aggregate(Sum('flux'))['flux__sum'] or 0.0
+        sidlineaverageflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__average_flux'))['line__average_flux__sum'] 
+        sidlinemaxflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__max_flux'))['line__max_flux__sum'] 
+        out = [
+            # 1
+            image.datetime,
+            # 3
+            realflux/sidlinemaxflux,
+            # 4
+            realflux/sidlineaverageflux,
+            # 5
+            image.realpoint__count,
+            # 6
+            len(realpoints),
+            # 7
+            image.sidtime.sidpoint_set.count(),
+            # 8
+            scale(image.realpoint__flux__sum),
+            # 9
+            realflux,
+            # 10
+            image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
+            # 11
+            realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+            # 12
+            sidlinemaxflux,
+            # 13
+            sidlineaverageflux,
+        ]
+        data.write( u' '.join(map(unicode, out))+u'\n' )
+        data.flush()
+        sys.stdout.write('.')
+        sys.stdout.flush()
+
+class ExitError(Exception): pass
+def permonth_multi(args):
+    try: permonth(*args)
+    except KeyboardInterrupt: raise ExitError 
+
+if __name__ == '__main__':
+    from multiprocessing import Pool
+    if sys.argv[1] == 'multi':
+        pool = Pool(4)
+        args = [ (year,month,minimum_points) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] ]
+        try:
+            result = pool.map(permonth_multi, args)
+        except ExitError:
+            pool.terminate()
+
+    else:
+        year = int(sys.argv[1])
+        month = int(sys.argv[2])
+        permonth(year, month)
 

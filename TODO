@@ -14,3 +14,4 @@ Beware of the start/end of sidtime
 Clean up some of the early javascript variable names
 Would be nice to know if gnuplots internal format counts leapseconds
 Make process.py more objecty
+Fix inconsistency of nameing of Line's fields

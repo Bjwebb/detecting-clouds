@@ -53,6 +53,7 @@ class Image(models.Model):
 class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
+    active = models.BooleanField(default=True)
 
     def get_url(self):
         return self.image.get_url()

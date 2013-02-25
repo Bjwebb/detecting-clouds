@@ -19,6 +19,7 @@ td { text-align: right }
     {% if line.ratio %}
         <th>Ratio</th>
     {% endif %}
+    <th></th>
     {% endwith %}
 </tr>
 {% for line in line_list %}
@@ -28,14 +29,24 @@ td { text-align: right }
             {{ line.pk }}
         </a>
     </td>
-    <td>{{ line.sidpoint_set.count }}</td>
-    <td>{{ line.realpoint_set.count }}</td>
+    <td>
+        <a href="{% url 'clouds.views.line_sidpoints' line=line.pk %}">
+        {{ line.sidpoint_count }}</a>
+    </td>
+    <td>
+        <a href="{% url 'clouds.views.line_realpoints' line=line.pk %}">
+            {{ line.realpoint_count }}</a>
+    </td>
     <td>{{ line.average_flux }}</td>
     <td>{{ line.max_flux }}</td>
     <td>{{ line.stddev_flux }}</td>
     {% if line.ratio %}
         <td>{{ line.ratio }}</td>
     {% endif %}
+    <td>
+        <a href="{% url 'clouds.views.line_realpoints_plot' line=line.pk %}">
+            Realpoint Plot</a>
+    </td>
 </tr>
 {% endfor %}
 </table>

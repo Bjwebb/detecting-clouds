@@ -55,7 +55,7 @@ def open_fits(fname):
         # sextractor does not like 64 bit fits files.
         bzero = numpy.int32(hdu.header['BZERO'])
         data = numpy.vectorize(lambda x: x+bzero)(data)
-    
+
     return data
 
 class DataProcessor():
@@ -70,40 +70,48 @@ class DataProcessor():
     verbose = False
     resume = True
     log = None
+    log_images = None
     do_sum = False
     do_sum_db = False
+    prev = []
 
 
     def __init__(self, **kwargs):
         new_args = dict((k,v) for (k,v) in kwargs.iteritems() if v is not None)
-        
+
         if new_args.get('do_sum_db'):
             new_args['do_sum'] = True
         if new_args.get('do_sum'):
             self.__dict__.update(
-                image=False,
+                do_image=False,
                 do_output=False,
                 do_diff=False,
-                do_filter=False,
             )
 
         self.__dict__.update(new_args)
 
+        if self.resume:
+            if not self.log:
+                print 'You must specify a log file in order to resume.'
+                sys.exit(1)
+            with open(self.log) as f:
+                self.prev = f.read().splitlines()
+
 
     def extract(self, path, in_file):
-        checkfile = join(self.outdir,'extracted',path+'.fits')
-        catfile = join(self.outdir, 'cat', path+'.cat') 
         sex_file = tempfile.NamedTemporaryFile()
-        sex_file.write(open('test.sex').read().format(catfile, checkfile))
+        checkfile = join(self.outdir,'extracted',path+'.fits')
+        sex_file.write(open('template.sex').read().format(
+            join(self.outdir, 'cat', path+'.cat'),
+            checkfile,
+            ('FULL' if self.verbose==2 else 'QUIET'),
+        ))
         sex_file.flush()
         sex_file.seek(0)
-        with open(os.devnull) as shutup:
-            if self.verbose:
-                command = ['sextractor','-c',sex_file.name,in_file]
-                print ' '.join(command)
-                subprocess.call(command)
-            else:
-                subprocess.call(['sextractor','-c',sex_file.name,in_file], stdout=shutup, stderr=shutup)
+        command = ['sextractor','-c',sex_file.name,in_file]
+        if self.verbose == 2:
+            print ' '.join(command)
+        subprocess.call(command)
         self.png(os.path.join('extracted',path),
                pyfits.getdata(checkfile, 0))
 
@@ -130,21 +138,20 @@ class DataProcessor():
     def process_file(self, path):
         if not path.endswith('.fits'):
             return
+        if self.verbose:
+            print path
         out_path = path[:-5]
         
         data = open_fits(path) 
 
         if self.do_diff:
             if prevdata is not None:
-                if do_filter:
+                if self.do_filter:
                     data_diff = remove_saturated( data - prevdata )
                 else:
                     data_diff = data - prevdata
                 if do_output:
-                    output(os.path.join('diff',out_path),
-                           out_name,
-                           data_diff, do_filter, image, True, outdir,
-                           verbose=verbose)
+                    self.output(out_path, data_diff)
 
         if self.do_filter:
             data = remove_saturated(data)
@@ -162,18 +169,27 @@ class DataProcessor():
                 image = Image.objects.get(datetime=dt)
                 image.intensity = intensity 
                 image.save()
+
         return data
 
 
     def process_night(self, path, files):
+        if self.verbose:
+            print path
         if self.do_total:
             self.night = []
         if self.do_diff:
             self.prevdata = None
 
         for name in files:
-
-            self.process_file(os.path.join(path, name))
+            fpath = os.path.join(path, name)
+            if self.log_images and fpath in self.prev:
+                continue
+            self.process_file(fpath)
+            if self.log_images:
+                logfile = open(self.log, 'a')
+                logfile.write(fpath+'\n')
+                logfile.close()
 
         if self.do_total and self.night:
             try:
@@ -192,24 +208,16 @@ class DataProcessor():
 
 
     def list_nights(self):
-        prev_nights = {}
-        try:
-            if self.resume:
-                if not self.log:
-                    print 'You must specify a log file in order to resume.'
-                    sys.exit(1)
-                prev_nights = open(self.log).read().splitlines()
-            elif self.log:
+        if self.log and not self.resume:
+            try:
                 os.remove(self.log)
-        except IOError, e:
-            if e.errno != errno.EEXIST:
-                raise e
-        print prev_nights
-
+            except OSError, e:
+                if e.errno != errno.ENOENT:
+                    raise e
         for (path, subdirs, files) in os.walk(self.indir):
             subdirs.sort()
             files.sort()
-            if not path in prev_nights:
+            if not path in self.prev:
                 yield(path,files)
 
 
@@ -242,18 +250,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some all sky fits data')
     parser.add_argument('--indir', '-i')
     parser.add_argument('--outdir', '-o') 
-    parser.add_argument('--verbose', '-v', action='store_true') 
+    parser.add_argument('--verbose', '-v', action='count') 
     parser.add_argument('--multi', '-m', action='store_true') 
     parser.add_argument('--log', '-l')
+    parser.add_argument('--log-images', dest='log_images', action='store_true', default=None)
     parser.add_argument('--continue', '-c', dest='resume', action='store_true') 
     for arg in ['total', 'image', 'diff', 'output', 'filter', 'extract']:
-        parser.add_argument('--'+arg, dest='do_'+arg, action='store_true') 
-        parser.add_argument('--no-'+arg, dest='do_'+arg, action='store_false') 
+        parser.add_argument('--'+arg, dest='do_'+arg, action='store_true', default=None) 
+        parser.add_argument('--no-'+arg, dest='do_'+arg, action='store_false', default=None) 
     parser.add_argument('--sum', '-s', dest='do_sum', action='store_true')
     parser.add_argument('--sum-db', '-sd', dest='do_sum', action='store_true')
 
     args = parser.parse_args()
-        
 
     args_dict = vars(args)
     dp = DataProcessor(**args_dict)

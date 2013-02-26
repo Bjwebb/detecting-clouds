@@ -198,8 +198,8 @@ class DataProcessor():
                 print "Encountered an error in ", indir
                 print e
                 return
-            output(os.path.join(path, 'total'), tdata,
-                image_filter=flatten_max(2000*len(night)))
+            self.output(os.path.join(path, 'total'), tdata,
+                image_filter=flatten_max(2000*len(self.night)))
         
         if self.log:
             logfile = open(self.log, 'a')

@@ -7,5 +7,13 @@ cd ../../
 python process.py -l process.log -mv --log-images -c
 
 python generate_symlinks.py -sid out/fits_filtered/sym sid
+python process.py -mv -i sid --no-filter
+
+python manage.py syncdb
+python manage.py migrate
+python init_db.py
+python catsid.py
 
 python process.py --sum-db --no-filter -i out/fits_filtered/sym -m
+
+

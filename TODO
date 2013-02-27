@@ -1,4 +1,5 @@
 (lb) Beware final sidtime minute etc.
+    Actually very shrot and apparently no images in it
 Currently finding 'sidtime' by rounding down....
 (lb) Sort out them smudges
 Deal with float BSCALE in a nicer way

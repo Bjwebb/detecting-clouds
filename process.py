@@ -19,15 +19,6 @@ from multiprocessing import Pool
 
 from utils import join
 
-def path_split(path):
-    l = []
-    while path:
-        (path,top) = os.path.split(path)
-        l.insert(0, top)
-    return l
-
-def get_subdir(path):
-    return os.path.join(*path_split(path)[2:])
 
 
 
@@ -120,16 +111,21 @@ class DataProcessor():
         img = smp.toimage(image_filter(data))
         img.save(join(self.outdir,'png',path+'.png'))
 
+    def write_fits(self, path, data, fits_file):
+        if os.path.isfile(fits_file):
+            os.remove(fits_file)
+        pyfits.writeto(fits_file, data) 
 
-    def output(self, path, data, **kwargs):
-        if self.do_filter:
-            filtered_file = join(self.outdir, 'fits_filtered',path+'.fits')
-            if os.path.isfile(filtered_file):
-                os.remove(filtered_file)
-            pyfits.writeto(filtered_file, data) 
+        if self.do_extract:
+            self.extract(path, fits_file)
 
-            if self.do_extract:
-                self.extract(path, filtered_file)
+    def output(self, path, data, writefits=False, **kwargs):
+        if writefits:
+            self.write_fits(path, data, join(self.outdir, 'fits',path+'.fits'))
+        elif self.do_filter:
+            self.write_fits(path, data, join(self.outdir, 'fits_filtered',path+'.fits'))
+        elif self.do_extract:
+            self.extract(path, path+'.fits')
 
         if self.do_image:
             self.png(path, data, **kwargs)
@@ -151,7 +147,7 @@ class DataProcessor():
                 else:
                     data_diff = data - prevdata
                 if do_output:
-                    self.output(out_path, data_diff)
+                    self.output(os.path.join('diff', out_path), data_diff)
 
         if self.do_filter:
             data = remove_saturated(data)
@@ -198,8 +194,9 @@ class DataProcessor():
                 print "Encountered an error in ", indir
                 print e
                 return
-            output(os.path.join(path, 'total'), tdata,
-                image_filter=flatten_max(2000*len(night)))
+            self.output(os.path.join(path, 'total'), tdata,
+                writefits=True,
+                image_filter=flatten_max(2000*len(self.night)))
         
         if self.log:
             logfile = open(self.log, 'a')
@@ -259,7 +256,7 @@ if __name__ == '__main__':
         parser.add_argument('--'+arg, dest='do_'+arg, action='store_true', default=None) 
         parser.add_argument('--no-'+arg, dest='do_'+arg, action='store_false', default=None) 
     parser.add_argument('--sum', '-s', dest='do_sum', action='store_true')
-    parser.add_argument('--sum-db', '-sd', dest='do_sum', action='store_true')
+    parser.add_argument('--sum-db', '-sd', dest='do_sum_db', action='store_true')
 
     args = parser.parse_args()
 

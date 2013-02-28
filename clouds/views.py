@@ -11,6 +11,7 @@ import hashlib
 
 class LineListView(ListView):
     paginate_by=100
+    order_fields = ['id', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
 
     def get_queryset(self):
         queryset = Line.objects.order_by('pk')
@@ -29,11 +30,20 @@ class LineListView(ListView):
 
         if 'order' in self.request.GET:
             field = self.request.GET['order']
-            fields = ['id', 'pk', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
-            if field in fields + map(lambda x:'-'+x, fields):
+
+            if field in self.order_fields + map(lambda x:'-'+x, self.order_fields):
                 queryset = queryset.order_by(field)
 
         return queryset
+
+    def get_context_data(self, **context):
+        query = self.request.GET.copy()
+        if 'page' in query:
+            del query['page']
+        return super(LineListView, self).get_context_data(
+            order_fields=self.order_fields,
+            querystring=query.urlencode(),
+            **context)
 
 class PointsView(ListView):
     template_name = 'clouds/point_list.html'
@@ -89,6 +99,8 @@ class PlotView(object):
                 int(self.request.GET['w']),
                 int(self.request.GET['h'])
             )
+        if 'ymax' in self.request.GET:
+            self.extra_commands += "\nset yrange [0:{0}]".format(float(self.request.GET['ymax']))
 
         data_file = self.get_data_file()
         command_string = """

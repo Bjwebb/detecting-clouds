@@ -89,16 +89,18 @@ def permonth(year, month, minimum_points=1):
             # 7
             image.sidtime.sidpoint_set.count(),
             # 8
-            scale(image.realpoint__flux__sum),
+            scale(image.intensity),
             # 9
-            realflux,
+            scale(image.realpoint__flux__sum),
             # 10
-            image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
+            realflux,
             # 11
-            realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+            image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
             # 12
-            sidlinemaxflux,
+            realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
             # 13
+            sidlinemaxflux,
+            # 14
             sidlineaverageflux,
         ]
         data.write( u' '.join(map(unicode, out))+u'\n' )

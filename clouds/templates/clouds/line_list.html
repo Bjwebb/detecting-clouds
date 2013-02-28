@@ -3,6 +3,17 @@ td,th { padding-left: 1em }
 td { text-align: right }
 </style>
 
+<p>
+Order:
+<ul style="display: inline">
+{% for field in order_fields %}
+<li style="display: inline; margin-right: 3em;">
+    <a href="?order={{field}}">{{field}}</a>
+    <a href="?order=-{{field}}">(reverse)</a>
+</li>
+{% endfor %}
+</p>
+
 {% load url from future %}
 
 {% include 'pagination.html' %}

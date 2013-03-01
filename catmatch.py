@@ -64,6 +64,7 @@ if __name__ == '__main__':
     from django.db import connection
     cursor = connection.cursor()
     cursor.execute("DELETE FROM clouds_realpoint")
+    transaction.commit_unless_managed()
 
     #pool.map(catmatch_wrap, Image.objects.filter(datetime=datetime.datetime(2012, 2, 15, 4, 30, 11)))
     pool.map(catmatch_wrap, Image.objects.all())

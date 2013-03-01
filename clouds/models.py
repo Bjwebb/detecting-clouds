@@ -28,6 +28,9 @@ class Point(models.Model):
     idx = models.IntegerField()
 
 class SidPoint(Point):
+    class Meta:
+        ordering = ['sidtime__time']
+
     sidtime =  models.ForeignKey(SidTime)
     prev = models.OneToOneField('self', null=True)
 
@@ -60,6 +63,9 @@ class Image(models.Model):
         return os.path.join('sym/', f('%Y'), f('%m'), f('%d'), f('%Y-%m-%dT%H:%M:%S'))
 
 class RealPoint(Point):
+    class Meta:
+        ordering = ['image__datetime']
+
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
     active = models.BooleanField(default=True)

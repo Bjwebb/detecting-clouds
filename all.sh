@@ -13,7 +13,10 @@ python manage.py syncdb
 python manage.py migrate
 python init_db.py
 python catsid.py
+python catmatch.py
 
 python process.py --sum-db --no-filter -i out/fits_filtered/sym -m
 
-
+python db_filter.py
+python perline.py
+python perimage.py multi

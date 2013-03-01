@@ -80,8 +80,6 @@ class PaginatedPointsView(PointsView):
             queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:20]
             self.closest = queryset1[0]
             return list(reversed(queryset1)) + list(queryset2)
-        else:
-            queryset = queryset.order_by('pk')
         return queryset
 
 class PlotView(object):

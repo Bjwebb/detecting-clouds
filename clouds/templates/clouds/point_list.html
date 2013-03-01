@@ -16,7 +16,10 @@ window.location.hash = '{{closest.pk}}';
 {% for point in object_list %}
 <div class="image" style="position: relative; height: 480px;" id="{{point.pk}}">
     <div style="float:right; text-align: right"> 
-        <div>{{point.image.datetime|date:"c"}}</div>
+        <div>
+            {{point.image.datetime|date:"c"}}
+            {{point.sidtime.time|time:"H:i"}}
+        </div>
         <div style="font-size:100px">{{point.flux|floatformat:"0"}}</div>
         {% comment %}
         <div style=" font-size:{% widthratio point.flux 200 1 %}px">{{point.flux}}</div>

@@ -1,18 +1,27 @@
 <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
 {% load url from future %}
 
+<a href="{% url self pk=prev.pk %}">
+    Previous</a>
+<a href="{% url self pk=next.pk %}">
+    Next</a>
+
 <div class="image" style="position: relative; height: 480px;" id="{{point.pk}}">
-    <img src="{{ MEDIA_URL }}out/png/{{image.get_url|urlencode}}.png" />
+    <img src="{{ MEDIA_URL }}out/png/{{object.get_url|urlencode}}.png" />
     {% for point in point_list %}
     {% if point.line %}
-    <a href="{% url 'clouds.views.line_realpoints_ani_plot' line=point.line.pk %}?timestamp={{image.datetime|date:"U"}}">
+        {% if image %}
+            <a href="{% url 'clouds.views.line_realpoints_plot' line=point.line.pk %}?timestamp={{image.datetime|date:"U"}}&day">
+        {% else %}
+            <a href="{% url 'clouds.views.line_sidpoints_plot' line=point.line.pk %}?timestamp={{image.datetime|date:"U"}}&day">
+        {% endif %}
     {% endif %}
     <div class="point{% if point.line %} hasline{% endif %}" style="border:1px solid {%if point.line%}green{%else%}red{%endif%};
                 width:{{point.width}}px;
                 height:{{point.height}}px;
                 position:absolute;
-                top:{{point.ymin}}px;
-                left:{{point.xmin}}px;"
+                top:{{point.y_min}}px;
+                left:{{point.x_min}}px;"
     ></div>
     {% if point.line %}
     </a>
@@ -22,8 +31,8 @@
 <a href="javascript:$('.point').show()">all</a>
 <a href="javascript:$('.point').hide();$('.hasline').show()">with lines</a>
 <br/>
-<a href="{{ MEDIA_URL }}out/fits_filtered/{{image.get_url|urlencode}}.fits">FITS</a>
-<a href="{{ MEDIA_URL }}out/cat/{{image.get_url|urlencode}}.cat">cat</a>
+<a href="{{ MEDIA_URL }}out/fits_filtered/{{object.get_url|urlencode}}.fits">FITS</a>
+<a href="{{ MEDIA_URL }}out/cat/{{object.get_url|urlencode}}.cat">cat</a>
 
 {% for point in point_list %}
 <div class="point_infobox" id="point_infobox_{{ realpoint.pk }}">

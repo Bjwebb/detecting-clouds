@@ -12,6 +12,6 @@
     {{image.datetime|date:"H:i"}}
 </h2>
 
-{% include 'clouds/image.html' with point_list=image.realpoint_set.all %}
+{% include 'clouds/image.html' with point_list=image.realpoint_set.all self='clouds.views.image' %}
 
 

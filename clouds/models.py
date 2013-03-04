@@ -1,15 +1,22 @@
 from django.db import models
-import os
+import os, datetime
 
 class SidTime(models.Model):
     time = models.TimeField(unique=True)
 
     def __unicode__(self):
         return unicode(self.time)
+    
+    def gnuplot_datetime(self):
+        return datetime.datetime.combine(datetime.date(2000,1,1), self.time)
 
     def get_dir(self):
         t = self.time
         return os.path.join('sid/', os.path.join(*[ unicode(x).zfill(2) for x in [ t.hour, t.minute ] ]))
+
+    def get_url(self):
+        t = self.time
+        return 'sid/' + '/'.join([ unicode(x).zfill(2) for x in [ t.hour, t.minute, 'total' ] ]) 
 
 class Line(models.Model):
     average_flux = models.FloatField(default=0.0)
@@ -47,8 +54,7 @@ class SidPoint(Point):
         return unicode(self.sidtime)
 
     def get_url(self):
-        t = self.sidtime.time
-        return 'sid/' + '/'.join([ unicode(x).zfill(2) for x in [ t.hour, t.minute, 'total' ] ]) 
+        return self.sidtime.get_url()
 
 class Image(models.Model):
     datetime = models.DateTimeField(unique=True)

@@ -15,14 +15,22 @@
 
 {% for point in object_list %}
 <div class="image"
+    {% if point.image %}
         data-timestamp="{{point.image.datetime|date:"U"}}" data-pk="{{point.image.pk}}"
+    {% elif point.sidtime %}
+        data-timestamp="{{point.sidtime.gnuplot_datetime|date:"U"}}" data-pk="{{point.sidtime.pk}}"
+    {% endif %}
         style="position: relative; height: 480px; width: 640px; left:900px;" id="{{point.pk}}">
-    <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
+    {% if point.image %}
+        <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
+    {% endif %}
     <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"
             style="position:absolute;
                    top:0px;
                    left:0px;"/>
-    </a>
+    {% if point.image %}
+        </a>
+    {% endif %}
     <div style="border:1px solid red;
                 width:10px;
                 height:10px;

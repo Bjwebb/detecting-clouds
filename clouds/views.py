@@ -1,6 +1,6 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import DetailView, ListView, TemplateView
-from clouds.models import Line, SidPoint, RealPoint, Image
+from clouds.models import Line, SidPoint, RealPoint, Image, SidTime
 from django.db.models import Count
 from django.utils.http import urlquote_plus
 import subprocess, tempfile, re, os, datetime
@@ -76,19 +76,44 @@ class PaginatedPointsView(PointsView):
             dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
             #queryset1 = queryset.filter(image__datetime__lt=dt).order_by('-image__datetime')[0:(self.paginate_by/2)]
             #queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:(self.paginate_by/2)]
-            queryset1 = queryset.filter(image__datetime__lte=dt).order_by('-image__datetime')[0:20]
-            queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:20]
+            if self.model == SidPoint:
+                t = dt.time()
+                queryset1 = queryset.filter(sidtime__time__lte=t).order_by('-sidtime__time')[0:20]
+                queryset2 = queryset.filter(sidtime__time__gt=t).order_by('sidtime__time')[0:20]
+            else:
+                queryset1 = queryset.filter(image__datetime__lte=dt).order_by('-image__datetime')[0:20]
+                queryset2 = queryset.filter(image__datetime__gt=dt).order_by('image__datetime')[0:20]
             self.closest = queryset1[0]
             return list(reversed(queryset1)) + list(queryset2)
         return queryset
+
+class DatePointsView(PointsView):
+    def get_queryset(self):
+        queryset = super(DatePointsView, self).get_queryset()
+        kwargs = self.kwargs
+        dt_from = datetime.datetime(int(kwargs['year']), int(kwargs['month']), int(kwargs['day']))
+        dt_to = dt_from + datetime.timedelta(days=1)
+        return queryset.filter(image__datetime__gt=dt_from, image__datetime__lt=dt_to).order_by('image__datetime')
+
+class HourPointsView(PointsView):
+    def get_queryset(self):
+        queryset = super(HourPointsView, self).get_queryset()
+        hour = int(self.kwargs['hour'])
+        return queryset.filter(
+            sidtime__time__gte=datetime.time(hour, 0),
+            sidtime__time__lte=datetime.time(hour, 59, 59)
+        ).order_by('sidtime__time')
 
 class PlotView(object):
     gnuplot_date_format = '%Y-%m-%d'
     gnuplot_column_no = 3
     gnuplot_size = '1600,900'
     gnuplot_lines = False
+    gnuplot_timefmt = '%Y-%m-%d %H:%M:%S'
     extra_commands = ''
     context = {}
+
+    template_name = 'clouds/plot.html'
 
     def get_context_data(self, **context):
         self.gnuplot_lines = 'lines' in self.request.GET
@@ -102,7 +127,7 @@ class PlotView(object):
 
         data_file = self.get_data_file()
         command_string = """
-set timefmt "%Y-%m-%d %H:%M:%S"
+set timefmt "{6}"
 set xdata time
 set terminal png size {0} 
 set format x '{1}'
@@ -115,7 +140,8 @@ show variables all
            self.extra_commands,
            data_file.name,
            self.gnuplot_column_no,
-           ('w lines' if self.gnuplot_lines else '')
+           ('w lines' if self.gnuplot_lines else ''),
+           self.gnuplot_timefmt
         )
         image = hashlib.md5(command_string).hexdigest()+urlquote_plus(
                     self.request.META['PATH_INFO'].replace('/','-'))+'.png'
@@ -147,15 +173,55 @@ show variables all
         context.update(self.context)
         return context
 
-class PointsPlotView(PlotView, PointsView):
-    template_name = 'clouds/plot_line_realpoints.html'
+class DatePlotView(PlotView):
+    template_prefix = 'clouds.views.plot'
 
+    def get(self, request, year=None, month=None, day=None, **kwargs):
+        if 'timestamp' in request.GET and not day:
+            dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
+            suffix = ''
+            if day:
+                return HttpResponse('test')
+            elif month or 'day' in request.GET:
+                kwargs.update(year=dt.year,month=dt.month,day=dt.day)
+                suffix = '_day'
+            elif year:
+                kwargs.update(year=dt.year,month=dt.month)
+            else:
+                kwargs.update(year=dt.year)
+            q = request.GET.copy()
+            if 'day' in request.GET:
+                del q['day']
+            else:
+                del q['timestamp']
+            return HttpResponseRedirect(reverse(self.template_prefix+suffix, kwargs=kwargs)+'?'+q.urlencode())
+        self.context['querystring'] = request.GET.urlencode()
+
+        if year:
+            dt_from = datetime.datetime(int(year), int(month or 1), int(day or 1))
+            if day:
+                dt_to = dt_from + datetime.timedelta(days=1)
+                self.gnuplot_date_format = '%H:%M'
+            elif month:
+                if month == '12':
+                    dt_to = datetime.datetime(int(year)+1, 1, 1)
+                else:
+                    dt_to = datetime.datetime(int(year), int(month)+1, 1)
+            else:
+                dt_to = datetime.datetime(int(year)+1, 1, 1)
+
+            self.extra_commands = """set xrange ['{0}':'{1}']""".format(
+                    dt_from, dt_to)
+        return super(DatePlotView, self).get(request)
+
+class PointsPlotView(PlotView, PointsView):
     def get_data_file(self):
         data_file = tempfile.NamedTemporaryFile()
         active_only = not 'all' in self.request.GET 
         inactive_only = 'inactive' in self.request.GET
         for point in self.object_list:
-            if ((not active_only and not inactive_only)
+            if (self.model != RealPoint
+             or (not active_only and not inactive_only)
              or (active_only and point.active)
              or (inactive_only and not point.active)):
                 if self.model == RealPoint:
@@ -174,47 +240,33 @@ class PointsPlotView(PlotView, PointsView):
         context.update(line=self.kwargs['line'])
         return super(PointsPlotView, self).get_context_data(**context)
 
-class CloudsPlotView(PlotView, TemplateView):
-    template_name = 'clouds/plot.html'
-    
-    def get(self, request, year=None, month=None, day=None):
+class RealPointsPlotView(DatePlotView, PointsPlotView):
+    template_prefix = 'clouds.views.line_realpoints_plot'
+    pass
+
+class SidPointsPlotView(PointsPlotView):
+    gnuplot_timefmt='%H:%M:%S'
+    gnuplot_date_format='%H:%M'
+    gnuplot_column_no=2
+
+    def get(self, request, hour=None, **kwargs):
         if 'timestamp' in request.GET:
             dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
-            suffix = ''
-            if day:
-                return HttpResponse('test')
-            elif month:
-                args=(dt.year,dt.month,dt.day,)
-                suffix = '_day'
-            elif year:
-                args=(dt.year,dt.month,)
-            else:
-                args=(dt.year,)
+            kwargs.update(hour=dt.time().hour)
             q = request.GET.copy()
             del q['timestamp']
-            return HttpResponseRedirect(reverse('clouds.views.plot'+suffix, args=args)+'?'+q.urlencode())
-        self.context['querystring'] = request.GET.urlencode()
+            return HttpResponseRedirect(reverse('clouds.views.line_sidpoints_plot_hour', kwargs=kwargs)+'?'+q.urlencode())
+        if hour:
+            self.extra_commands = """set xrange ['{0}:00':'{1}:00']""".format(int(hour), int(hour)+1)
+        return super(SidPointsPlotView, self).get(request, **kwargs)
 
-        if year:
-            dt_from = datetime.datetime(int(year), int(month or 1), int(day or 1))
-            if day:
-                dt_to = dt_from + datetime.timedelta(days=1)
-                self.gnuplot_date_format = '%H:%M'
-            elif month:
-                if month == '12':
-                    dt_to = datetime.datetime(int(year)+1, 1, 1)
-                else:
-                    dt_to = datetime.datetime(int(year), int(month)+1, 1)
-            else:
-                dt_to = datetime.datetime(int(year)+1, 1, 1)
-
-            self.extra_commands = """set xrange ['{0}':'{1}']""".format(
-                    dt_from, dt_to)
-
+class CloudsPlotView(DatePlotView, TemplateView):
+    
+    def get(self, request, *args, **kwargs):
         if 'column' in request.GET:
             self.gnuplot_column_no = int(request.GET['column'])
 
-        return super(CloudsPlotView, self).get(request)
+        return super(CloudsPlotView, self).get(request, *args, **kwargs)
 
     def get_data_file(self):
         if 'minpoints' in self.request.GET:
@@ -226,9 +278,8 @@ class CloudsPlotView(PlotView, TemplateView):
 class AniView(ListView):
     template_name = 'clouds/ani.html'
     def get_queryset(self):
-
-        dt_args = map(int, self.args)
-        dt_from = datetime.datetime(*dt_args)
+        kwargs = self.kwargs
+        dt_from = datetime.datetime(int(kwargs['year']), int(kwargs['month']), int(kwargs['day']))
         dt_to = dt_from + datetime.timedelta(days=1)
         return Image.objects.filter(datetime__gt=dt_from, datetime__lt=dt_to).order_by('datetime')
 
@@ -257,8 +308,8 @@ class AniCloudsPlotView(DoubleViewMixin, CloudsPlotView):
     secondary_class = AniView
     template_name = 'clouds/ani_plot.html'
 
-class AniPointsPlotView(DoubleViewMixin, PointsPlotView):
-    secondary_class = PaginatedPointsView
+class AniRealPointsPlotView(DoubleViewMixin, RealPointsPlotView):
+    secondary_class = DatePointsView
     template_name = 'clouds/ani_plot_line_realpoints.html'
 
     def get_context_data(self, **context):
@@ -267,7 +318,28 @@ class AniPointsPlotView(DoubleViewMixin, PointsPlotView):
                     self.secondary_context_data['object_list'][0].image.datetime,
                     self.secondary_context_data['object_list'][-1].image.datetime)
             self.gnuplot_date_format = '%H:%M'
-        return super(AniPointsPlotView, self).get_context_data(**context)
+        return super(AniRealPointsPlotView, self).get_context_data(**context)
+
+class AniSidPointsPlotView(DoubleViewMixin, SidPointsPlotView):
+    secondary_class = HourPointsView
+    template_name = 'clouds/ani_plot_line_realpoints.html'
+
+class TimeNavDetailView(DetailView):
+    date_field = 'datetime'
+    
+    def get_next(self, filter_field, order):
+        q = self.model.objects.filter(**{filter_field: getattr(self.object, self.date_field)}).order_by(order) 
+        try:
+            return q[0]
+        except IndexError:
+            return self.model.objects.order_by(order)[0]
+
+    def get_context_data(self, **context):
+        context.update(
+            prev = self.get_next(self.date_field+'__lt', '-'+self.date_field),
+            next = self.get_next(self.date_field+'__gt', self.date_field),
+        )
+        return super(TimeNavDetailView, self).get_context_data(**context)
 
 home = TemplateView.as_view(template_name='clouds/home.html')
 
@@ -275,12 +347,17 @@ lines = LineListView.as_view()
 line = DetailView.as_view(model=Line)
 
 line_sidpoints = PaginatedPointsView.as_view(model=SidPoint)
+line_sidpoints_plot = SidPointsPlotView.as_view(model=SidPoint)
+line_sidpoints_plot_hour = AniSidPointsPlotView.as_view(model=SidPoint)
+
 line_realpoints = PaginatedPointsView.as_view(model=RealPoint)
-line_realpoints_plot = PointsPlotView.as_view(model=RealPoint)
-line_realpoints_ani_plot = AniPointsPlotView.as_view(model=RealPoint)
+line_realpoints_plot = RealPointsPlotView.as_view(model=RealPoint)
+line_realpoints_plot_day = AniRealPointsPlotView.as_view(model=RealPoint)
 
 plot = CloudsPlotView.as_view()
 ani = AniView.as_view()
 plot_day = AniCloudsPlotView.as_view()
 
-image = DetailView.as_view(model=Image)
+image = TimeNavDetailView.as_view(model=Image)
+sidtime = TimeNavDetailView.as_view(model=SidTime, date_field='time')
+

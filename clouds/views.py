@@ -8,6 +8,7 @@ import settings
 from django.core.urlresolvers import reverse
 import datetime
 import hashlib
+from django.db.models import Q
 
 class LineListView(ListView):
     paginate_by=100
@@ -56,6 +57,8 @@ class PointsView(ListView):
             queryset = queryset.prefetch_related('image')
         elif self.model == SidPoint:
             queryset = queryset.prefetch_related('sidtime')
+            if 'ends' in self.request.GET:
+                queryset = queryset.filter( Q(prev=None) | Q(sidpoint=None) )
 
         if 'line' in self.kwargs:
             queryset = queryset.filter(line__pk=self.kwargs['line'])
@@ -341,6 +344,11 @@ class TimeNavDetailView(DetailView):
         )
         return super(TimeNavDetailView, self).get_context_data(**context)
 
+class ImageView(TimeNavDetailView):
+    def get_context_data(self, **context):
+        context.update(point_pk=int(self.request.GET.get('point', 0)))
+        return super(ImageView, self).get_context_data(**context)
+
 home = TemplateView.as_view(template_name='clouds/home.html')
 
 lines = LineListView.as_view()
@@ -358,6 +366,6 @@ plot = CloudsPlotView.as_view()
 ani = AniView.as_view()
 plot_day = AniCloudsPlotView.as_view()
 
-image = TimeNavDetailView.as_view(model=Image)
-sidtime = TimeNavDetailView.as_view(model=SidTime, date_field='time')
+image = ImageView.as_view(model=Image)
+sidtime = ImageView.as_view(model=SidTime, date_field='time')
 

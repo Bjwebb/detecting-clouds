@@ -9,7 +9,7 @@ import clouds.settings
 setup_environ(clouds.settings)
 from clouds.models import Image, RealPoint, SidPoint, Line, SidTime 
 from catlib import parse_cat
-from django.db import reset_queries
+from django.db import reset_queries, transaction
 
 outdir = 'out'
 
@@ -23,9 +23,12 @@ def catmatch(image):
     taken_sidpoint_ids = {}
     realpoints = []
     for i, point in points.iterrows():
-        sidpoint = sidpoints.extra(select={
-            'd':'pow(x-{0}, 2) + pow(y-{1}, 2)'.format(
-                point['x'],point['y'])}).order_by('d')[0]
+        try:
+            sidpoint = sidpoints.extra(select={
+                'd':'pow(x-{0}, 2) + pow(y-{1}, 2)'.format(
+                    point['x'],point['y'])}).order_by('d')[0]
+        except IndexError:
+            continue
         if sidpoint.d < 3**2:
             use_sidpoint = True
             if sidpoint.pk in taken_sidpoint_ids:
@@ -38,7 +41,10 @@ def catmatch(image):
         else:
             use_sidpoint = False
 
-        realpoint = RealPoint(x=point['x'], y=point['y'],
+        realpoint = RealPoint(
+            x=point['x'], y=point['y'],
+            x_min=point['x_min'], y_min=point['y_min'],
+            width=point['width'], height=point['height'],
             flux=point['flux'],
             idx=i, image=image) 
         if use_sidpoint:
@@ -66,6 +72,6 @@ if __name__ == '__main__':
     cursor.execute("DELETE FROM clouds_realpoint")
     transaction.commit_unless_managed()
 
-    #pool.map(catmatch_wrap, Image.objects.filter(datetime=datetime.datetime(2012, 2, 15, 4, 30, 11)))
+    #map(catmatch_wrap, Image.objects.filter(datetime=datetime.datetime(2012, 11, 19, 10, 35, 8)))
     pool.map(catmatch_wrap, Image.objects.all())
 

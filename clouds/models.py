@@ -25,11 +25,21 @@ class Line(models.Model):
     realpoint_count = models.IntegerField(default=0)
     sidpoint_count = models.IntegerField(default=0)
 
+    def first_sidpoint(self):
+        return self.sidpoint_set.get(prev=None)
+    def last_sidpoint(self):
+        return self.sidpoint_set.get(sidpoint=None)
+
 class Point(models.Model):
     class Meta:
         abstract = True
     x = models.FloatField()
     y = models.FloatField()
+    x_min = models.FloatField()
+    y_min = models.FloatField()
+    width = models.FloatField()
+    height = models.FloatField()
+
     flux = models.FloatField()
     line = models.ForeignKey(Line, null=True)
     idx = models.IntegerField()
@@ -37,9 +47,11 @@ class Point(models.Model):
 class SidPoint(Point):
     class Meta:
         ordering = ['sidtime__time']
+        unique_together = (('sidtime', 'idx'),)
 
     sidtime =  models.ForeignKey(SidTime)
     prev = models.OneToOneField('self', null=True)
+    step = models.IntegerField(null=True) # Should be null iff prev is
 
     def __getattr__(self, name):
         if name == 'next':
@@ -67,6 +79,9 @@ class Image(models.Model):
     def get_file(self):
         f = self.datetime.strftime
         return os.path.join('sym/', f('%Y'), f('%m'), f('%d'), f('%Y-%m-%dT%H:%M:%S'))
+
+    def __unicode__(self):
+        return unicode(self.datetime)
 
 class RealPoint(Point):
     class Meta:

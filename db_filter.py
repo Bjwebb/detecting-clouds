@@ -4,6 +4,7 @@ setup_environ(clouds.settings)
 
 from clouds.models import RealPoint
 from django.db.models import F
-RealPoint.objects.update(active=True)
+print RealPoint.objects.filter(active=False).update(active=True)
 RealPoint.objects.filter(flux__gt=F('line__average_flux')+F('line__stddev_flux')*2).update(active=False)
-
+from django.db import connection
+print connection.queries

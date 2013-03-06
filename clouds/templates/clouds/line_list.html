@@ -31,6 +31,8 @@ Order:
         <th>Ratio</th>
     {% endif %}
     <th></th>
+    <th>Beginning</th>
+    <th>End</th>
     {% endwith %}
 </tr>
 {% for line in line_list %}
@@ -57,6 +59,22 @@ Order:
     <td>
         <a href="{% url 'clouds.views.line_realpoints_plot' line=line.pk %}">
             Realpoint Plot</a>
+    </td>
+    <td>
+        {% with line.first_sidpoint as sidpoint %}
+        {% if sidpoint %}
+        <a href="{% url 'clouds.views.sidtime' pk=sidpoint.sidtime.pk %}?point={{sidpoint.pk}}">
+            {{sidpoint.sidtime.time|time:"H:i" }}</a>
+        {% endif %}
+        {% endwith %}
+    </td>
+    <td>
+        {% with line.last_sidpoint as sidpoint %}
+        {% if sidpoint %}
+        <a href="{% url 'clouds.views.sidtime' pk=sidpoint.sidtime.pk %}?point={{sidpoint.pk}}">
+            {{sidpoint.sidtime.time|time:"H:i" }}</a>
+        {% endif %}
+        {% endwith %}
     </td>
 </tr>
 {% endfor %}

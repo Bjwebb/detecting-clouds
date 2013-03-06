@@ -26,9 +26,9 @@ window.location.hash = '{{closest.pk}}';
         {% endcomment %}
     </div>
     {% if point.image %}
-        <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
+        <a href="{% url 'clouds.views.image' pk=point.image.pk %}?point={{point.pk}}">
     {% else %}
-        <a href="{% url 'clouds.views.sidtime' pk=point.sidtime.pk %}">
+        <a href="{% url 'clouds.views.sidtime' pk=point.sidtime.pk %}?point={{point.pk}}">
     {% endif %}
     <img src="{{ MEDIA_URL }}out/png/{{point.get_url|urlencode}}.png"
             style="position:absolute;
@@ -36,11 +36,12 @@ window.location.hash = '{{closest.pk}}';
                    left:0px;"/>
     </a>
     <div style="border:1px solid red;
-                width:10px;
-                height:10px;
+                width:{{point.width}}px;
+                height:{{point.height}}px;
                 position:absolute;
-                top:{{point.y|add:'-5'}}px;
-                left:{{point.x|add:'-5'}}px;"></div>
+                top:{{point.y_min|add:"-1"}}px;
+                left:{{point.x_min|add:"-1"}}px;"
+                ></div>
 </div>
 {% endfor %}
 

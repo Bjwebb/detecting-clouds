@@ -59,7 +59,7 @@ class DataProcessor():
     do_filter = True
     do_extract = True
     verbose = False
-    resume = True
+    resume = False
     log = None
     log_images = None
     do_sum = False

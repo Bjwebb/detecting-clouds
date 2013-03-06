@@ -1,7 +1,17 @@
 {% load url from future %}
+{% load humanize %}
 <h2>
     {{sidtime.time|time:"H:i"}}
 </h2>
+
+<div style="float: right">
+{% for image in sidtime.image_set.all %}
+<a href="{% url 'clouds.views.image' pk=image.pk %}">
+    {{image.datetime|date:"Y-m-d H:i"}}</a>
+{{image.intensity|intcomma}}
+<br/>
+{% endfor %}
+</div>
 
 {% include 'clouds/image.html' with point_list=sidtime.sidpoint_set.all self='clouds.views.sidtime' %}
 

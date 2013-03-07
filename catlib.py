@@ -13,7 +13,7 @@ def parse_cat(file_name):
 
     return pandas.DataFrame({ 'x': df[9],
                               'y': df[10],
-                              'flux': df[3],
+                              'flux': df[1],
                               'x_min': df[5],
                               'y_min': df[6],
                               'width': df[7]-df[5],

@@ -1,5 +1,6 @@
 {% extends 'clouds/ani.html' %}
 {% load url from future %}
+{% load humanize %}
 
 {% block header %}
 {{ block.super }}
@@ -20,7 +21,7 @@ window.location.hash = '{{closest.pk}}';
             {{point.image.datetime|date:"c"}}
             {{point.sidtime.time|time:"H:i"}}
         </div>
-        <div style="font-size:100px">{{point.flux|floatformat:"0"}}</div>
+        <div style="font-size:100px">{{point.flux|floatformat:"0"|intcomma}}</div>
         {% comment %}
         <div style=" font-size:{% widthratio point.flux 200 1 %}px">{{point.flux}}</div>
         {% endcomment %}

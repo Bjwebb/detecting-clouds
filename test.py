@@ -32,11 +32,8 @@ t = Template(open(os.path.join('clouds','templates','clouds','image.html')).read
 
 from catlib import parse_cat
 
-#point_list = map(lambda (i,row):row, parse_cat(os.path.join('test','out','cat',path,date_obs+'.cat')).iterrows())
-point_list = map(lambda (i,row):row, parse_cat(os.path.join('out','cat','sid', path_end, 'total.cat')).iterrows())
-#with open(os.path.join('test',date_obs+'.html'), 'w') as out:
-with open(os.path.join('test','total.html'), 'w') as out:
+point_list = map(lambda (i,row):row, parse_cat(os.path.join('test','out','cat',path,date_obs+'.cat')).iterrows())
+with open(os.path.join('test',date_obs+'.html'), 'w') as out:
     out.write(t.render(Context({'point_list': point_list,
-#                                'image': {'get_url': date_obs }
-                                'image': {'get_url': path_end }
+                                'image': {'get_url': date_obs }
                                 })))

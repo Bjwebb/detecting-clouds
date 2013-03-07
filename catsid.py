@@ -11,6 +11,7 @@ from clouds.models import RealPoint, SidPoint, Line, SidTime
 
 from catlib import parse_cat
 
+subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
 from django.db import connection, transaction, reset_queries
 cursor = connection.cursor()
 cursor.execute("DROP TABLE clouds_realpoint")

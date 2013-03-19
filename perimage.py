@@ -5,6 +5,7 @@ import datetime
 from clouds.models import Image, RealPoint, SidPoint, Line, SidTime 
 from django.db.models import Sum, Max, Count, Avg 
 import os, sys
+from django.db import reset_queries, connection
 
 def scale(n): 
     s = 10000000.0 # Arbitary scaling factor to make numbers easier to compare
@@ -13,6 +14,8 @@ def scale(n):
     except TypeError:
         return 0.0
 
+
+connection.close()
 
 
 """
@@ -49,7 +52,8 @@ for image in Image.objects.filter(
     sys.stdout.flush()
 """
 
-def permonth(year, month, minimum_points=1):
+def permonth(year, month, minimum_points=1, generation=1):
+
     if month == 12:
         tomonth = 1
         toyear = year+1
@@ -58,21 +62,23 @@ def permonth(year, month, minimum_points=1):
         toyear = year
 
     try:
-        os.mkdir(os.path.join('out', 'sum'+str(minimum_points)))
+        os.mkdir(os.path.join('out', 'sum{0}-{1}'.format(minimum_points, generation)))
     except OSError:
         pass
-    data = open(os.path.join('out', 'sum'+str(minimum_points), str(year)+str(month).zfill(2)), 'w')
+    data = open(os.path.join('out', 'sum{0}-{1}'.format(minimum_points, generation), str(year)+str(month).zfill(2)), 'w')
 
     for image in Image.objects.filter(
                 datetime__gt=datetime.datetime(year,month,1),
-                datetime__lt=datetime.datetime(toyear,tomonth,1)).order_by('datetime'
+                datetime__lt=datetime.datetime(toyear,tomonth,1),
+                realpoint__generation=generation
+                    ).order_by('datetime'
                     ).annotate(Sum('realpoint__flux')
                     ).annotate(Count('realpoint')
                     ).annotate(Sum('realpoint__flux')
                     ):
-        realpoints = image.realpoint_set.filter(sidpoint__isnull=False).filter(
+        realpoints = image.realpoint_set.filter(generation=generation, sidpoint__isnull=False).filter(
             line__average_flux__gt=0.0, line__realpoint_count__gt=minimum_points, active=True)
-        realflux = realpoints.aggregate(Sum('flux'))['flux__sum'] or 0.0
+        realflux = realpoints.filter(generation=generation).aggregate(Sum('flux'))['flux__sum'] or 0.0
         sidlineaverageflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__average_flux'))['line__average_flux__sum'] 
         sidlinemaxflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__max_flux'))['line__max_flux__sum'] 
         out = [
@@ -108,6 +114,8 @@ def permonth(year, month, minimum_points=1):
         sys.stdout.write('.')
         sys.stdout.flush()
 
+    reset_queries()
+
 class ExitError(Exception): pass
 def permonth_multi(args):
     try: permonth(*args)
@@ -117,7 +125,7 @@ if __name__ == '__main__':
     from multiprocessing import Pool
     if sys.argv[1] == 'multi':
         pool = Pool(4)
-        args = [ (year,month,minimum_points) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] ]
+        args = [ (year,month,minimum_points, generation) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [3]  ]
         try:
             result = pool.map(permonth_multi, args)
         except ExitError:

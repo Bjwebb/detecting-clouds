@@ -28,6 +28,7 @@ class Line(models.Model):
     def first_sidpoint(self):
         return self.sidpoint_set.get(prev=None)
     def last_sidpoint(self):
+        print self.pk
         return self.sidpoint_set.get(sidpoint=None)
 
 class Point(models.Model):
@@ -56,7 +57,7 @@ class SidPoint(Point):
     def __getattr__(self, name):
         if name == 'next':
             try:
-                return self.sidpoint
+                return SidPoint.objects.select_for_update().get(prev=self)
             except SidPoint.DoesNotExist:
                 return None
         else:
@@ -83,6 +84,9 @@ class Image(models.Model):
     def __unicode__(self):
         return unicode(self.datetime)
 
+class RealPointGeneration(models.Model):
+    pass
+
 class RealPoint(Point):
     class Meta:
         ordering = ['image__datetime']
@@ -90,6 +94,7 @@ class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
     active = models.BooleanField(default=True)
+    generation = models.ForeignKey(RealPointGeneration, default=RealPointGeneration.objects.get_or_create(pk=1)[0].pk)
 
     def get_url(self):
         return self.image.get_url()

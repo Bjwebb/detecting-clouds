@@ -1,6 +1,6 @@
 import numpy, pandas
 import os, datetime, math
-import dateutil.parser
+import dateutil.parser, subprocess
 
 from utils import join, get_sidereal_time
 
@@ -67,10 +67,12 @@ if __name__ == '__main__':
     from multiprocessing import Pool
     pool = Pool(4)
 
+    subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
     from django.db import connection
     cursor = connection.cursor()
-    cursor.execute("DELETE FROM clouds_realpoint")
+    cursor.execute("DROP TABLE clouds_realpoint")
     transaction.commit_unless_managed()
+    subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
 
     #map(catmatch_wrap, Image.objects.filter(datetime=datetime.datetime(2012, 11, 19, 10, 35, 8)))
     pool.map(catmatch_wrap, Image.objects.all())

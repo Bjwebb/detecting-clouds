@@ -55,6 +55,7 @@ class PointsView(ListView):
 
         if self.model == RealPoint:
             queryset = queryset.prefetch_related('image')
+            queryset = queryset.filter(generation=int(self.request.GET.get('g',1)))
         elif self.model == SidPoint:
             queryset = queryset.prefetch_related('sidtime')
             if 'ends' in self.request.GET:

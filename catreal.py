@@ -12,7 +12,8 @@ from catlib import parse_cat
 from django.db import reset_queries, connection, transaction
 
 outdir = 'out'
-generation_pk = 4
+generation_pk = 6
+copy_generation_pk = 4
 
 def catreal(image):
     global generation_pk
@@ -22,11 +23,12 @@ def catreal(image):
         return
 
     realpoints = []
-    for realpoint in image.realpoint_set.filter(generation=1):
+    for realpoint in image.realpoint_set.filter(generation=copy_generation_pk):
         point = points.ix[realpoint.idx]
         realpoint.pk = None
         realpoint.id = None
         realpoint.flux = point['flux']
+        realpoint.flux_error = point['flux_error']
         realpoint.generation = generation
         realpoints.append(realpoint)
     RealPoint.objects.bulk_create(realpoints)

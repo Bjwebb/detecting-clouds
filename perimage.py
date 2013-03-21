@@ -125,7 +125,7 @@ if __name__ == '__main__':
     from multiprocessing import Pool
     if sys.argv[1] == 'multi':
         pool = Pool(4)
-        args = [ (year,month,minimum_points, generation) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [3]  ]
+        args = [ (year,month,minimum_points, generation) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [1]  ]
         try:
             result = pool.map(permonth_multi, args)
         except ExitError:

@@ -8,14 +8,15 @@ def parse_cat(file_name):
         return None
 
     # Exclude object larger than 10 pixels
-    df = df[ (df[7]-df[5]) < 20 ]
-    df = df[ (df[8]-df[6]) < 20 ]
+    df = df[ (df[12]-df[10]) < 20 ]
+    df = df[ (df[13]-df[11]) < 20 ]
 
-    return pandas.DataFrame({ 'x': df[9],
-                              'y': df[10],
-                              'flux': df[1],
-                              'x_min': df[5],
-                              'y_min': df[6],
-                              'width': df[7]-df[5],
-                              'height': df[8]-df[6]
+    return pandas.DataFrame({ 'x': df[14],
+                              'y': df[15],
+                              'flux': df[4+2],
+                              'flux_error': df[4+3],
+                              'x_min': df[10],
+                              'y_min': df[11],
+                              'width': df[12]-df[10],
+                              'height': df[13]-df[11]
                             })

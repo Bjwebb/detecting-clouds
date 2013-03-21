@@ -131,12 +131,12 @@ class PlotView(object):
 
         data_file = self.get_data_file()
         command_string = """
-set timefmt "{6}"
+set timefmt "{7}"
 set xdata time
 set terminal png size {0} 
 set format x '{1}'
 {2}
-plot '{3}' using 1:{4} {5}
+plot '{3}' using 1:{4} {5} {6}
 show variables all
 """.format(
            self.gnuplot_size,
@@ -145,6 +145,7 @@ show variables all
            data_file.name,
            self.gnuplot_column_no,
            ('w lines' if self.gnuplot_lines else ''),
+           ('w errorbars' if ':' in self.gnuplot_column_no else ''),
            self.gnuplot_timefmt
         )
         image = hashlib.md5(command_string).hexdigest()+urlquote_plus(
@@ -219,6 +220,10 @@ class DatePlotView(PlotView):
         return super(DatePlotView, self).get(request)
 
 class PointsPlotView(PlotView, PointsView):
+    plottype = ''
+    sidplot = False
+    gnuplot_column_no = '3:($3-$4):($3+$4)'
+
     def get_data_file(self):
         data_file = tempfile.NamedTemporaryFile()
         active_only = not 'all' in self.request.GET 
@@ -229,12 +234,19 @@ class PointsPlotView(PlotView, PointsView):
              or (active_only and point.active)
              or (inactive_only and not point.active)):
                 if self.model == RealPoint:
-                    data_file.write(unicode(point.image.datetime))
+                    if self.sidplot:
+                        if not point.sidpoint: continue
+                        data_file.write(unicode(point.sidpoint.sidtime.time))
+                    else:
+                        data_file.write(unicode(point.image.datetime))
                 else:
                     data_file.write(unicode(point.sidtime.time))
                 data_file.write(' ')
                 data_file.write(unicode(point.flux))
+                data_file.write(' ')
+                data_file.write(unicode(point.flux_error))
                 data_file.write('\n')
+                print point.flux, point.flux_error
                 data_file.flush()
         return data_file
 
@@ -248,10 +260,12 @@ class RealPointsPlotView(DatePlotView, PointsPlotView):
     template_prefix = 'clouds.views.line_realpoints_plot'
     pass
 
-class SidPointsPlotView(PointsPlotView):
+
+class SidPlotView(PointsPlotView):
     gnuplot_timefmt='%H:%M:%S'
     gnuplot_date_format='%H:%M'
     gnuplot_column_no=2
+    sidplot = True
 
     def get(self, request, hour=None, **kwargs):
         if 'timestamp' in request.GET:
@@ -262,7 +276,7 @@ class SidPointsPlotView(PointsPlotView):
             return HttpResponseRedirect(reverse('clouds.views.line_sidpoints_plot_hour', kwargs=kwargs)+'?'+q.urlencode())
         if hour:
             self.extra_commands = """set xrange ['{0}:00':'{1}:00']""".format(int(hour), int(hour)+1)
-        return super(SidPointsPlotView, self).get(request, **kwargs)
+        return super(SidPlotView, self).get(request, **kwargs)
 
 class CloudsPlotView(DatePlotView, TemplateView):
     
@@ -324,7 +338,7 @@ class AniRealPointsPlotView(DoubleViewMixin, RealPointsPlotView):
             self.gnuplot_date_format = '%H:%M'
         return super(AniRealPointsPlotView, self).get_context_data(**context)
 
-class AniSidPointsPlotView(DoubleViewMixin, SidPointsPlotView):
+class AniSidPointsPlotView(DoubleViewMixin, SidPlotView):
     secondary_class = HourPointsView
     template_name = 'clouds/ani_plot_line_realpoints.html'
 
@@ -356,12 +370,13 @@ lines = LineListView.as_view()
 line = DetailView.as_view(model=Line)
 
 line_sidpoints = PaginatedPointsView.as_view(model=SidPoint)
-line_sidpoints_plot = SidPointsPlotView.as_view(model=SidPoint)
+line_sidpoints_plot = SidPlotView.as_view(model=SidPoint)
 line_sidpoints_plot_hour = AniSidPointsPlotView.as_view(model=SidPoint)
 
 line_realpoints = PaginatedPointsView.as_view(model=RealPoint)
 line_realpoints_plot = RealPointsPlotView.as_view(model=RealPoint)
 line_realpoints_plot_day = AniRealPointsPlotView.as_view(model=RealPoint)
+line_realpoints_sidplot = SidPlotView.as_view(model=RealPoint)
 
 plot = CloudsPlotView.as_view()
 ani = AniView.as_view()

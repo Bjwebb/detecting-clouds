@@ -7,13 +7,17 @@ from utils import join, get_sidereal_time
 from django.core.management import setup_environ
 import clouds.settings
 setup_environ(clouds.settings)
-from clouds.models import Image, RealPoint, SidPoint, Line, SidTime 
+from clouds.models import Image, RealPoint, SidPoint, Line, SidTime, RealPointGeneration 
 from catlib import parse_cat
 from django.db import reset_queries, transaction
 
 outdir = 'out'
+generation_pk = 1
 
 def catmatch(image):
+    global generation_pk
+    generation, created = RealPointGeneration.objects.get_or_create(pk=generation_pk)
+
     points = parse_cat(os.path.join(outdir, 'cat', image.get_file()+'.cat'))
     if points is None:
         return
@@ -45,8 +49,8 @@ def catmatch(image):
             x=point['x'], y=point['y'],
             x_min=point['x_min'], y_min=point['y_min'],
             width=point['width'], height=point['height'],
-            flux=point['flux'],
-            idx=i, image=image) 
+            flux=point['flux'], flux_error=point['flux_error'],
+            idx=i, image=image, generation=generation) 
         if use_sidpoint:
             realpoint.sidpoint = sidpoint
             realpoint.line = sidpoint.line
@@ -57,23 +61,28 @@ def catmatch(image):
     reset_queries()
 
 def catmatch_wrap(image):
-    print image.get_file()
+    print image.pk, image.get_file()
     try:
         catmatch(image)
     except KeyboardInterrupt:
         raise ExitError
 
 if __name__ == '__main__':
+    from django.db import connection
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM clouds_realpoint WHERE generation_id=%s", [generation_pk])
+    transaction.commit_unless_managed()
+
+    connection.close()
+
     from multiprocessing import Pool
     pool = Pool(4)
 
-    subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
-    from django.db import connection
-    cursor = connection.cursor()
-    cursor.execute("DROP TABLE clouds_realpoint")
-    transaction.commit_unless_managed()
-    subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
+    pool.map(catmatch_wrap, Image.objects.order_by('datetime'))
 
-    #map(catmatch_wrap, Image.objects.filter(datetime=datetime.datetime(2012, 11, 19, 10, 35, 8)))
-    pool.map(catmatch_wrap, Image.objects.all())
+    #import datetime
+    #start = datetime.datetime(2011,8,23)
+    #end = start + datetime.timedelta(days=1)
+    ##start = start + datetime.timedelta(hours=10)
+    #pool.map(catmatch_wrap, Image.objects.filter(datetime__lt=end, datetime__gt=start))
 

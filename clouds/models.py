@@ -42,6 +42,7 @@ class Point(models.Model):
     height = models.FloatField()
 
     flux = models.FloatField()
+    flux_error = models.FloatField()
     line = models.ForeignKey(Line, null=True)
     idx = models.IntegerField()
 

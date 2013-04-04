@@ -85,7 +85,7 @@ def catsid(sidtime, prev_points_list, rerun=False):
                         x=point['x'], y=point['y'],
                         x_min=point['x_min'], y_min=point['y_min'],
                         width=point['width'], height=point['height'],
-                        flux=point['flux'],
+                        flux=point['flux'], flux_error=point['flux_error'],
                         line=line, idx=i, sidtime=sidtime, prev=prev_point, step=step) 
                 sidpoint.save()
             finally:
@@ -118,19 +118,24 @@ if __name__ == '__main__':
     subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
     from django.db import connection, transaction
     cursor = connection.cursor()
-    cursor.execute("DROP TABLE clouds_realpoint")
-    cursor.execute("DROP TABLE clouds_sidpoint")
-    cursor.execute("DROP TABLE clouds_line")
+    cursor.execute("TRUNCATE TABLE clouds_sidpoint CASCADE")
+    cursor.execute("TRUNCATE TABLE clouds_line CASCADE")
     transaction.commit_unless_managed()
     subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
+
+    import argparse
+    parser = argparse.ArgumentParser(description='Perform some calculations to each line, and add them to the database.')
+    parser.add_argument('--processes', '-p', type=int, default=4)
+    args = parser.parse_args()
 
     sidtimes = list(SidTime.objects.order_by('time'))
     from multiprocessing import Process, Queue
     processes = []
-    qs = [ Queue() for x in range(0,4) ]
+    cores = args.processes
+    qs = [ Queue() for x in range(0,cores) ]
     qs2 = list(qs)
     qs2.append(qs2.pop(0))
-    chunk = (len(sidtimes) / 4) + 1
+    chunk = (len(sidtimes) / cores) + 1
     
     connection.close()
     for i, (q, q2) in enumerate(zip(qs, qs2)):

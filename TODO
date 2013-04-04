@@ -16,4 +16,3 @@ Make generation_pk into a commandline argument
 Speed up perline (multiprocessing, bulk_create)
 
 Split out import points from matching them ?
-Allow import of a useful small subset into the database for testing

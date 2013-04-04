@@ -12,5 +12,8 @@ Stop using raw sql when it's not neccessary
 Look for breaks in lines, and check if sextractor is wrong
 Use postgres truncate
 Zfill urls for neatness
+Make generation_pk into a commandline argument
+Speed up perline (multiprocessing, bulk_create)
 
 Split out import points from matching them ?
+Allow import of a useful small subset into the database for testing

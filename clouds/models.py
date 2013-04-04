@@ -19,17 +19,32 @@ class SidTime(models.Model):
         return 'sid/' + '/'.join([ unicode(x).zfill(2) for x in [ t.hour, t.minute, 'total' ] ]) 
 
 class Line(models.Model):
-    average_flux = models.FloatField(default=0.0)
-    max_flux = models.FloatField(default=0.0)
-    stddev_flux = models.FloatField(default=0.0)
-    realpoint_count = models.IntegerField(default=0)
-    sidpoint_count = models.IntegerField(default=0)
-
     def first_sidpoint(self):
         return self.sidpoint_set.get(prev=None)
     def last_sidpoint(self):
         print self.pk
         return self.sidpoint_set.get(sidpoint=None)
+
+    def __getattr__(self, name):
+        if name in ['average_flux', 'max_flux', 'stddev_flux', 'realpoint_count', 'sidpoint_count']:
+            return getattr(self.linevalues_set.get(generation_id=2), name)
+        else:
+            return getattr(super(Line, self), name)
+
+class LineValuesGeneration(models.Model):
+    pass
+
+class LineValues(models.Model):
+    class Meta:
+        unique_together = ('line', 'generation')
+
+    line = models.ForeignKey(Line)
+    generation = models.ForeignKey(LineValuesGeneration)
+    average_flux = models.FloatField(default=0.0)
+    max_flux = models.FloatField(default=0.0)
+    stddev_flux = models.FloatField(default=0.0)
+    realpoint_count = models.IntegerField(default=0)
+    sidpoint_count = models.IntegerField(default=0)
 
 class Point(models.Model):
     class Meta:
@@ -95,7 +110,7 @@ class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
     active = models.BooleanField(default=True)
-    generation = models.ForeignKey(RealPointGeneration, default=RealPointGeneration.objects.get_or_create(pk=1)[0].pk)
+    generation = models.ForeignKey(RealPointGeneration, default=lambda: RealPointGeneration.objects.get_or_create(pk=1)[0].pk)
 
     def get_url(self):
         return self.image.get_url()

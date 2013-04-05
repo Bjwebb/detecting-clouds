@@ -18,6 +18,8 @@ python catmatch.py
 python process.py --sum-db --no-filter -i out/fits_filtered/sym -m
 
 python perline.py
-python db_filter.py
+python perline.py -f
 python perline.py -g 2
+python db_filter.py -g 2 -f
+python perline.py -g 3 -f
 python perimage.py multi

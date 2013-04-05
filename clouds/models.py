@@ -22,7 +22,7 @@ class Line(models.Model):
     def first_sidpoint(self):
         return self.sidpoint_set.get(prev=None)
     def last_sidpoint(self):
-        print self.pk
+        #print self.pk
         return self.sidpoint_set.get(sidpoint=None)
 
     def __getattr__(self, name):

@@ -63,6 +63,9 @@ class PointsView(ListView):
 
         if 'line' in self.kwargs:
             queryset = queryset.filter(line__pk=self.kwargs['line'])
+            line = Line.objects.get(pk=self.kwargs['line'])
+            print line.average_flux
+            print line.stddev_flux
 
         return queryset
 
@@ -145,7 +148,7 @@ show variables all
            data_file.name,
            self.gnuplot_column_no,
            ('w lines' if self.gnuplot_lines else ''),
-           ('w errorbars' if ':' in self.gnuplot_column_no else ''),
+           ('w errorbars' if ':' in str(self.gnuplot_column_no) else ''),
            self.gnuplot_timefmt
         )
         image = hashlib.md5(command_string).hexdigest()+urlquote_plus(
@@ -226,8 +229,8 @@ class PointsPlotView(PlotView, PointsView):
 
     def get_data_file(self):
         data_file = tempfile.NamedTemporaryFile()
-        active_only = not 'all' in self.request.GET 
         inactive_only = 'inactive' in self.request.GET
+        active_only = not 'all' in self.request.GET and not inactive_only 
         for point in self.object_list:
             if (self.model != RealPoint
              or (not active_only and not inactive_only)
@@ -246,7 +249,7 @@ class PointsPlotView(PlotView, PointsView):
                 data_file.write(' ')
                 data_file.write(unicode(point.flux_error))
                 data_file.write('\n')
-                print point.flux, point.flux_error
+                #print point.flux, point.flux_error
                 data_file.flush()
         return data_file
 
@@ -264,7 +267,7 @@ class RealPointsPlotView(DatePlotView, PointsPlotView):
 class SidPlotView(PointsPlotView):
     gnuplot_timefmt='%H:%M:%S'
     gnuplot_date_format='%H:%M'
-    gnuplot_column_no=2
+    gnuplot_column_no='2:($2-$3):($2+$3)'
     sidplot = True
 
     def get(self, request, hour=None, **kwargs):

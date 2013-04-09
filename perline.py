@@ -10,6 +10,8 @@ parser = argparse.ArgumentParser(description='Perform some calculations to each 
 parser.add_argument('--count-only', '-c', action='store_true')
 parser.add_argument('--filter', '-f', action='store_true')
 parser.add_argument('--generation', '-g', type=int, default=1)
+parser.add_argument('--reset', '-r', action='store_true')
+parser.add_argument('--negative', '-n', action='store_true')
 args = parser.parse_args()
 generation_pk = args.generation
 
@@ -56,16 +58,21 @@ def add_values_worker(bounds):
 def filter_worker(bounds):
     minpk, maxpk = bounds
     realpoints = RealPoint.objects.filter(line__pk__gte=minpk, line__pk__lt=maxpk)
-    print realpoints.filter(active=False).update(active=True)
-    print realpoints.filter(line__linevalues__generation__pk=1
-        ).filter(flux__gt=F('line__linevalues__average_flux')*2
-        ).update(active=False)
+    if args.reset:
+        print realpoints.filter(active=False).update(active=True)
+    elif args.negative:
+        print realpoints.filter(flux__lt=0
+            ).update(active=False)
+    else:
+        print realpoints.filter(line__linevalues__generation__pk=generation_pk
+            ).filter(flux__gt=F('line__linevalues__average_flux')*2
+            ).update(active=False)
 
 if __name__ == '__main__':
     from multiprocessing import Pool
     pool = Pool(4)
 
-    chunk_size = 10000
+    chunk_size = 1000
     chunks = [ (x,x+chunk_size) for x in range(0,
                                 Line.objects.order_by('-pk')[0].pk, chunk_size)]
     if args.filter:

@@ -15,7 +15,8 @@ class LineListView(ListView):
     order_fields = ['id', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
 
     def get_queryset(self):
-        queryset = Line.objects.order_by('pk')
+        queryset = Line.objects.prefetch_related('linevalues_set')
+
         if 'ratio' in self.request.GET:
             queryset = Line.objects.filter(max_flux__gt=0, stddev_flux__gt=0).extra(select={'ratio':'stddev_flux/max_flux'})
 
@@ -33,7 +34,11 @@ class LineListView(ListView):
             field = self.request.GET['order']
 
             if field in self.order_fields + map(lambda x:'-'+x, self.order_fields):
+                if field != 'id':
+                    field == 'linevalues__'+field
                 queryset = queryset.order_by(field)
+        else:
+            queryset.order_by('pk')
 
         return queryset
 

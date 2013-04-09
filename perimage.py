@@ -52,7 +52,7 @@ for image in Image.objects.filter(
     sys.stdout.flush()
 """
 
-def permonth(year, month, minimum_points=1, generation=1):
+def permonth(year, month, minimum_points=1, generation=1, outdir='out'):
 
     if month == 12:
         tomonth = 1
@@ -62,10 +62,10 @@ def permonth(year, month, minimum_points=1, generation=1):
         toyear = year
 
     try:
-        os.mkdir(os.path.join('out', 'sum{0}-{1}'.format(minimum_points, generation)))
+        os.mkdir(os.path.join(outdir, 'sum{0}-{1}'.format(minimum_points, generation)))
     except OSError:
         pass
-    data = open(os.path.join('out', 'sum{0}-{1}'.format(minimum_points, generation), str(year)+str(month).zfill(2)), 'w')
+    data = open(os.path.join(outdir, 'sum{0}-{1}'.format(minimum_points, generation), str(year)+str(month).zfill(2)), 'w')
 
     for image in Image.objects.filter(
                 datetime__gt=datetime.datetime(year,month,1),
@@ -76,11 +76,13 @@ def permonth(year, month, minimum_points=1, generation=1):
                     ).annotate(Count('realpoint')
                     ).annotate(Sum('realpoint__flux')
                     ):
-        realpoints = image.realpoint_set.filter(generation=generation, sidpoint__isnull=False).filter(
-            line__average_flux__gt=0.0, line__realpoint_count__gt=minimum_points, active=True)
+        kwargs = dict(line__linevalues__generation__pk=3, line__linevalues__realpoint_count__gt=minimum_points)
+    
+        realpoints = image.realpoint_set.filter(generation=generation, sidpoint__isnull=False,
+            active=True, **kwargs)
         realflux = realpoints.filter(generation=generation).aggregate(Sum('flux'))['flux__sum'] or 0.0
-        sidlineaverageflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__average_flux'))['line__average_flux__sum'] 
-        sidlinemaxflux = image.sidtime.sidpoint_set.filter(line__realpoint_count__gt=minimum_points).aggregate(Sum('line__max_flux'))['line__max_flux__sum'] 
+        sidlineaverageflux = image.sidtime.sidpoint_set.filter(**kwargs).aggregate(Sum('line__linevalues__average_flux'))['line__linevalues__average_flux__sum'] 
+        sidlinemaxflux = image.sidtime.sidpoint_set.filter(**kwargs).aggregate(Sum('line__linevalues__max_flux'))['line__linevalues__max_flux__sum'] 
         out = [
             # 1
             image.datetime,
@@ -103,7 +105,7 @@ def permonth(year, month, minimum_points=1, generation=1):
             # 11
             image.sidtime.sidpoint_set.aggregate(Sum('flux'))['flux__sum'],
             # 12
-            realpoints.aggregate(Sum('line__average_flux'))['line__average_flux__sum'],
+            realpoints.aggregate(Sum('line__linevalues__average_flux'))['line__linevalues__average_flux__sum'],
             # 13
             sidlinemaxflux,
             # 14
@@ -122,17 +124,24 @@ def permonth_multi(args):
     except KeyboardInterrupt: raise ExitError 
 
 if __name__ == '__main__':
-    from multiprocessing import Pool
-    if sys.argv[1] == 'multi':
-        pool = Pool(4)
-        args = [ (year,month,minimum_points, generation) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [1]  ]
+    import argparse
+    parser = argparse.ArgumentParser(description='Outputs values calculated per image.')
+    parser.add_argument('--multi', '-m', type=int, default=0)
+    parser.add_argument('--outdir', '-o') 
+    cl_args = parser.parse_args()
+
+    args = [ (year,month,minimum_points,generation,cl_args.outdir) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [1]  ]
+    if cl_args.multi:
+        from multiprocessing import Pool
+        pool = Pool(cl_args.multi)
         try:
             result = pool.map(permonth_multi, args)
         except ExitError:
             pool.terminate()
 
     else:
-        year = int(sys.argv[1])
-        month = int(sys.argv[2])
-        permonth(year, month)
+        map(permonth_multi, args)
+        #year = int(sys.argv[1])
+        #month = int(sys.argv[2])
+        #permonth(year, month)
 

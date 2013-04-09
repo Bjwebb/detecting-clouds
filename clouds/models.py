@@ -27,7 +27,7 @@ class Line(models.Model):
 
     def __getattr__(self, name):
         if name in ['average_flux', 'max_flux', 'stddev_flux', 'realpoint_count', 'sidpoint_count']:
-            return getattr(self.linevalues_set.get(generation_id=2), name)
+            return getattr(self.linevalues_set.get(generation_id=3), name)
         else:
             return getattr(super(Line, self), name)
 

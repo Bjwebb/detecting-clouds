@@ -35,7 +35,7 @@ class LineListView(ListView):
 
             if field in self.order_fields + map(lambda x:'-'+x, self.order_fields):
                 if field != 'id':
-                    field == 'linevalues__'+field
+                    field = ('-' if field.startswith('-') else '')+'linevalues__'+field.lstrip('-')
                 queryset = queryset.order_by(field)
         else:
             queryset.order_by('pk')
@@ -153,7 +153,7 @@ show variables all
            data_file.name,
            self.gnuplot_column_no,
            ('w lines' if self.gnuplot_lines else ''),
-           ('w errorbars' if ':' in str(self.gnuplot_column_no) else ''),
+           ('w errorbars' if ':' in str(self.gnuplot_column_no) and not 'noerror' in self.request.GET else ''),
            self.gnuplot_timefmt
         )
         image = hashlib.md5(command_string).hexdigest()+urlquote_plus(

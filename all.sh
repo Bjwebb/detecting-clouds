@@ -17,10 +17,6 @@ python catmatch.py
 
 python process.py --sum-db --no-filter -i out/fits_filtered/sym -m
 
-python perline.py -g 1
-python perline.py -g 1 -f
-python perline.py -g 2
-python perline.py -g 2 -f
-python perline.py -g 3
+./timeper.sh
 python perimage.py -m4 -o out 
 

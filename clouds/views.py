@@ -36,6 +36,7 @@ class LineListView(ListView):
             if field in self.order_fields + map(lambda x:'-'+x, self.order_fields):
                 if field != 'id':
                     field = ('-' if field.startswith('-') else '')+'linevalues__'+field.lstrip('-')
+                    queryset = queryset.filter(linevalues__generation__pk=3)
                 queryset = queryset.order_by(field)
         else:
             queryset.order_by('pk')
@@ -151,7 +152,7 @@ show variables all
            self.gnuplot_date_format,
            self.extra_commands,
            data_file.name,
-           self.gnuplot_column_no,
+           (self.gnuplot_column_no.split(':')[0] if 'noerror' in self.request.GET and type(self.gnuplot_column_no) != int else self.gnuplot_column_no),
            ('w lines' if self.gnuplot_lines else ''),
            ('w errorbars' if ':' in str(self.gnuplot_column_no) and not 'noerror' in self.request.GET else ''),
            self.gnuplot_timefmt
@@ -227,6 +228,9 @@ class DatePlotView(PlotView):
                     dt_from, dt_to)
         return super(DatePlotView, self).get(request)
 
+class NoPointsError(ValueError):
+    pass
+
 class PointsPlotView(PlotView, PointsView):
     plottype = ''
     sidplot = False
@@ -236,6 +240,8 @@ class PointsPlotView(PlotView, PointsView):
         data_file = tempfile.NamedTemporaryFile()
         inactive_only = 'inactive' in self.request.GET
         active_only = not 'all' in self.request.GET and not inactive_only 
+        if len(self.object_list) == 0:
+            raise NoPointsError()
         for point in self.object_list:
             if (self.model != RealPoint
              or (not active_only and not inactive_only)
@@ -255,7 +261,7 @@ class PointsPlotView(PlotView, PointsView):
                 data_file.write(unicode(point.flux_error))
                 data_file.write('\n')
                 #print point.flux, point.flux_error
-                data_file.flush()
+        data_file.flush()
         return data_file
 
     def get_context_data(self, **context):

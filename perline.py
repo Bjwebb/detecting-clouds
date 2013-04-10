@@ -12,6 +12,7 @@ parser.add_argument('--filter', '-f', action='store_true')
 parser.add_argument('--generation', '-g', type=int, default=1)
 parser.add_argument('--reset', '-r', action='store_true')
 parser.add_argument('--negative', '-n', action='store_true')
+parser.add_argument('--line', '-l', type=int, default=0)
 args = parser.parse_args()
 generation_pk = args.generation
 
@@ -19,10 +20,7 @@ def add_values_for_lines(bare_lines):
     if args.count_only:
         lines = bare_lines
     else:
-        if generation_pk == 1:
-            lines_ = bare_lines
-        else:
-            lines_ = bare_lines.filter(realpoint__active=True)
+        lines_ = bare_lines.filter(realpoint__active=True)
         lines = lines_.annotate(
             Count('realpoint'),
             Avg('realpoint__flux'),
@@ -75,6 +73,8 @@ if __name__ == '__main__':
     chunk_size = 1000
     chunks = [ (x,x+chunk_size) for x in range(0,
                                 Line.objects.order_by('-pk')[0].pk, chunk_size)]
+    if args.line:
+        chunks = [ (args.line,args.line+1) ]
     if args.filter:
         pool.map(filter_worker, chunks)
     else:
@@ -86,4 +86,3 @@ if __name__ == '__main__':
 
         pool.map(add_values_worker, chunks)
 
-# python perline.py  288.42s user 13.84s system 65% cpu 7:43.99 total

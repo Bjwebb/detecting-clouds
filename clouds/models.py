@@ -27,7 +27,10 @@ class Line(models.Model):
 
     def __getattr__(self, name):
         if name in ['average_flux', 'max_flux', 'stddev_flux', 'realpoint_count', 'sidpoint_count']:
-            return getattr(self.linevalues_set.get(generation_id=3), name)
+            try:
+                return getattr(self.linevalues_set.get(generation_id=3), name)
+            except LineValues.DoesNotExist:
+                return
         else:
             return getattr(super(Line, self), name)
 
@@ -45,6 +48,9 @@ class LineValues(models.Model):
     stddev_flux = models.FloatField(default=0.0)
     realpoint_count = models.IntegerField(default=0)
     sidpoint_count = models.IntegerField(default=0)
+
+    def __unicode__(self):
+        return unicode(self.pk)
 
 class Point(models.Model):
     class Meta:

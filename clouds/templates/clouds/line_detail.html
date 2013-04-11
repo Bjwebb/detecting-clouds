@@ -10,8 +10,14 @@ th { text-align: right }
 <h2>{{line.pk}}</h2>
 <table>
 <tr>
+    <th>Field</th>
+    <th>Filtered Value</th>
+    <th>Raw Value</th>
+</tr>
+<tr>
     <th>Average Flux</th>
     <td>{{ line.average_flux }}</td>
+    <td></td>
 </tr>
 <tr>
     <th>
@@ -19,6 +25,7 @@ th { text-align: right }
             Sidpoints
         </a>
     </th>
+    <td>{{ line.sidpoint_count }}</td>
     <td>{{ line.sidpoint_set.count }}</td>
 </tr>
 <tr>
@@ -28,6 +35,7 @@ th { text-align: right }
         <a href="{% url 'clouds.views.line_realpoints_plot' line=line.pk %}">
             (plot)</a>
     </th>
+    <td>{{ line.realpoint_count }}</td>
     <td>{{ line.realpoint_set.count }}</td>
 </tr>
 </table>

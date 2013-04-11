@@ -6,9 +6,11 @@ from django.utils.http import urlquote_plus
 import subprocess, tempfile, re, os, datetime
 import settings
 from django.core.urlresolvers import reverse
-import datetime
-import hashlib
+import datetime, random
 from django.db.models import Q
+import hashlib
+import PIL.Image, PIL.ImageDraw
+import StringIO
 
 class LineListView(ListView):
     paginate_by=100
@@ -16,6 +18,8 @@ class LineListView(ListView):
 
     def get_queryset(self):
         queryset = Line.objects.prefetch_related('linevalues_set')
+        if not 'all' in self.request.GET:
+            queryset = queryset.filter(linevalues__generation__pk=4)
 
         if 'ratio' in self.request.GET:
             queryset = Line.objects.filter(max_flux__gt=0, stddev_flux__gt=0).extra(select={'ratio':'stddev_flux/max_flux'})
@@ -50,7 +54,11 @@ class LineListView(ListView):
         return super(LineListView, self).get_context_data(
             order_fields=self.order_fields,
             querystring=query.urlencode(),
+            ends='ends' in self.request.GET,
             **context)
+
+class LineImage():
+    pass
 
 class PointsView(ListView):
     template_name = 'clouds/point_list.html'
@@ -60,10 +68,10 @@ class PointsView(ListView):
         queryset = self.model.objects
 
         if self.model == RealPoint:
-            queryset = queryset.prefetch_related('image')
+            queryset = queryset.select_related('image')
             queryset = queryset.filter(generation=int(self.request.GET.get('g',1)))
         elif self.model == SidPoint:
-            queryset = queryset.prefetch_related('sidtime')
+            queryset = queryset.select_related('sidtime')
             if 'ends' in self.request.GET:
                 queryset = queryset.filter( Q(prev=None) | Q(sidpoint=None) )
 
@@ -197,10 +205,10 @@ class DatePlotView(PlotView):
             if day:
                 return HttpResponse('test')
             elif month or 'day' in request.GET:
-                kwargs.update(year=dt.year,month=dt.month,day=dt.day)
+                kwargs.update(year=dt.year,month=str(dt.month).zfill(2),day=str(dt.day).zfill(2))
                 suffix = '_day'
             elif year:
-                kwargs.update(year=dt.year,month=dt.month)
+                kwargs.update(year=dt.year,month=str(dt.month).zfill(2))
             else:
                 kwargs.update(year=dt.year)
             q = request.GET.copy()
@@ -282,11 +290,16 @@ class SidPlotView(PointsPlotView):
     sidplot = True
 
     def get(self, request, hour=None, **kwargs):
-        if 'timestamp' in request.GET:
+        if 'timestamp' in request.GET and not hour:
+            print 'a'
             dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
             kwargs.update(hour=dt.time().hour)
             q = request.GET.copy()
-            del q['timestamp']
+            # 'day' here is misleading, but keeps compatibility with image views
+            if 'day' in request.GET: 
+                del q['day']
+            else:
+                del q['timestamp']
             return HttpResponseRedirect(reverse('clouds.views.line_sidpoints_plot_hour', kwargs=kwargs)+'?'+q.urlencode())
         if hour:
             self.extra_commands = """set xrange ['{0}:00':'{1}:00']""".format(int(hour), int(hour)+1)
@@ -378,6 +391,50 @@ class ImageView(TimeNavDetailView):
         context.update(point_pk=int(self.request.GET.get('point', 0)))
         return super(ImageView, self).get_context_data(**context)
 
+    def get_queryset(self):
+        queryset = super(ImageView, self).get_queryset()
+        #queryset.prefetch_related('sidpoint', 'sidpoint__line', 'sidpoint__line__linevalues')
+        return queryset
+
+
+class RandomView(TemplateView):
+    template_name = 'clouds/random.html'
+
+    def get_context_data(self, **context):
+        bins = []
+        for vmin,vmax in [ (0.0,0.05), (0.05, 0.1), (0.1,0.2), (0.2, 0.3), (0.3, 0.4), (0.4,1.0) ] :
+            images = Image.objects.filter(visibility__gte=vmin, visibility__lt=vmax)
+            count = images.count()
+            if count > 0:
+                # http://stackoverflow.com/questions/9354127/how-to-grab-one-random-item-from-a-database-in-django-postgresql
+                i = random.randint(0, count-1)
+                image = images[i]
+            else:
+                image = None
+            bins.append({'image': image, 'min':vmin, 'max':vmax, 'count':count})
+        context['bins'] = bins
+        return context
+
+def lineimg(request, pk):
+    im = PIL.Image.new('RGB', (640,480), 'white')
+    draw = PIL.ImageDraw.Draw(im)
+    line = Line.objects.get(pk=pk)
+    prev_point = None
+    for point in line.sidpoint_set.select_related('prev').all():
+        prev_point = point.prev
+        if type(prev_point) == type(None):
+            draw.point((point.x, point.y), fill='black')
+        else:
+            draw.line((prev_point.x, prev_point.y, point.x, point.y), fill='black')
+    from django.db import connection
+    print connection.queries
+    if 'real' in request.GET:
+        for point in line.realpoint_set.all():
+            draw.point((point.x, point.y), fill='blue')
+    output = StringIO.StringIO()
+    im.save(output, format='PNG')
+    return HttpResponse(output.getvalue(), 'image/png')
+
 home = TemplateView.as_view(template_name='clouds/home.html')
 
 lines = LineListView.as_view()
@@ -399,3 +456,4 @@ plot_day = AniCloudsPlotView.as_view()
 image = ImageView.as_view(model=Image)
 sidtime = ImageView.as_view(model=SidTime, date_field='time')
 
+random_view = RandomView.as_view()

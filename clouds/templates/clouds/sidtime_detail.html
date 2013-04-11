@@ -1,5 +1,6 @@
 {% load url from future %}
 {% load humanize %}
+<body>
 <h2>
     {{sidtime.time|time:"H:i"}}
 </h2>
@@ -13,6 +14,6 @@
 {% endfor %}
 </div>
 
-{% include 'clouds/image.html' with point_list=sidtime.sidpoint_set.all self='clouds.views.sidtime' %}
+{% include 'clouds/image.html' with point_list=sidtime.magic_points self='clouds.views.sidtime' %}
 
-
+</body>

@@ -25,7 +25,7 @@ $(document).keydown(function(e) {
             <a href="{% url 'clouds.views.line_sidpoints_plot' line=point.line.pk %}?timestamp={{sidtime.gnuplot_datetime|date:"U"}}&day">
         {% endif %}
     {% endif %}
-    <div class="point{% if point.line %} hasline{% endif %}" style="border:1px solid {%if point.pk == point_pk%}blue{%elif point.line%}green{%else%}red{%endif%};
+    <div class="point{% if point.line %} hasline{% endif %}" style="border:1px solid {%if point.pk == point_pk%}blue{%elif point.line%}{%if point.active or not image%}{%if point.line.realpoint_count > 20 %}green{%else%}black{%endif%}{%else%}orange{%endif%}{%else%}red{%endif%};
                 width:{{point.width}}px;
                 height:{{point.height}}px;
                 position:absolute;
@@ -52,3 +52,4 @@ $(document).keydown(function(e) {
 {% endif %}
 </div>
 {% endfor %}
+

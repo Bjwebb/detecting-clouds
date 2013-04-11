@@ -6,6 +6,7 @@ urlpatterns = patterns('clouds.views',
     url(r'^sidtime/(?P<pk>\d+)$', 'sidtime'), 
     url(r'^lines/$', 'lines'), 
     url(r'^lines/(?P<pk>\d+)/$', 'line'), 
+    url(r'^lines/(?P<pk>\d+)/img/$', 'lineimg'), 
     url(r'^lines/(?P<line>\d+)/sidpoints/$', 'line_sidpoints'), 
     url(r'^lines/(?P<line>\d+)/sidpoints/plot/$', 'line_sidpoints_plot'), 
     url(r'^lines/(?P<line>\d+)/sidpoints/plot/(?P<hour>\d+)/$', 'line_sidpoints_plot_hour'), 
@@ -20,6 +21,7 @@ urlpatterns = patterns('clouds.views',
     url(r'^plot/(?P<year>\d+)/(?P<month>\d+)/$', 'plot'), 
     url(r'^plot/(?P<year>\d+)/(?P<month>\d+)/(?P<day>\d+)/$', 'plot_day'), 
     url(r'^ani/(\d+)/(\d+)/(\d+)/$', 'ani'), 
+    url(r'^random/$', 'random_view'), 
 )
 
 from django.conf import settings

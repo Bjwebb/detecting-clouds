@@ -1,25 +1,34 @@
-Would be nice to know if gnuplots internal format counts leapseconds
-Deal with float BSCALE in a nicer way
-Fix inconsistency of nameing of Line's fields
-
+        Useful to note
 (lb) Beware final sidtime minute etc.
-    Actually very shrot and apparently no images in it
+    Actually very short and apparently no images in it
 Currently finding 'sidtime' by rounding down....
 (lb) Sort out them smudges
 Investigate whether the Milky Way is acting like a cloud
-Clean up some of the early javascript variable names
 Look for breaks in lines, and check if sextractor is wrong
+Would be nice to know if gnuplots internal format counts leapseconds
+    Although, there's only one leapsecond June 2012 in the relevant time period. One second is smaller than the exposure time
 
 
-Stop using raw sql when it's not neccessary
-Use postgres truncate -> actually if not dropping databases, must be carefull to vacuum, reindex and not assume pk=1 is first
-Zfill urls for neatness
-Plot filtered points in a different colour
+        Neatness
+Change perline to use slices rather than pk bounds
 Clean up hardcoded linevalue generations
+Stop using raw sql when it's not neccessary
+Use postgres truncate
+    actually if not dropping databases, must be carefull to vacuum, reindex and not assume pk=1 is first
+Clean up some of the early javascript variable names
+Deal with float BSCALE in a nicer way
+Fix inconsistency of naming of Line's fields
 
-Split out importing points from matching them ?
 
-Filter by linelength
-Add plots of positions of all points in a line
-Calculate error bars for perimage values
-Create random gradient cloudcover image
+        ?
+Split out importing points from matching them 
+
+
+        Minor UI
+Plot filtered points in a different colour
+
+
+        Important
+Calculate more errors:
+    Calculate error bars for perimage values
+    For realpoints based on their distance from the relevant sidpoint

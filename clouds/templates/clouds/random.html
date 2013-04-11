@@ -1,0 +1,31 @@
+<style>
+    #bin {
+        display: inline-block;
+        margin-top: 10px;
+    }
+    h3 {
+        margin: 0;
+        margin-right: 100px;
+        display: inline;
+    }
+    span {
+        width: 100%;
+        text-align: center;
+    }
+</style>
+{% load url from future %}
+{% for bin in bins %}
+<div id="bin">
+<h3>
+    {{bin.min}} - {{bin.max}}
+    ({{bin.count}})
+</h3>
+<span>{{bin.image.visibility|floatformat:"3"}}</span>
+{% if bin.image.get_url %}
+<div>
+    <a href="{% url 'clouds.views.image' pk=bin.image.pk %}">
+    <img src="{{MEDIA_URL}}out/png/{{bin.image.get_url}}.png"></a>
+</div>
+{% endif %}
+</div>
+{% endfor %}

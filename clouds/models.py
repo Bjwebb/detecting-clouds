@@ -18,18 +18,24 @@ class SidTime(models.Model):
         t = self.time
         return 'sid/' + '/'.join([ unicode(x).zfill(2) for x in [ t.hour, t.minute, 'total' ] ]) 
 
+    def magic_points(self):
+        return self.sidpoint_set.prefetch_related('line__linevalues_set').prefetch_related('sidtime')
+
 class Line(models.Model):
     def first_sidpoint(self):
         return self.sidpoint_set.get(prev=None)
     def last_sidpoint(self):
-        #print self.pk
         return self.sidpoint_set.get(sidpoint=None)
 
     def __getattr__(self, name):
         if name in ['average_flux', 'max_flux', 'stddev_flux', 'realpoint_count', 'sidpoint_count']:
-            try:
-                return getattr(self.linevalues_set.get(generation_id=3), name)
-            except LineValues.DoesNotExist:
+            #try:
+                #return getattr(self.linevalues_set.get(generation_id=4), name)
+            #except LineValues.DoesNotExist:
+                # Do this to make use of prefetch_related:
+                for linevalue in self.linevalues_set.all():
+                    if linevalue.generation_id == 4:
+                        return getattr(linevalue, name)
                 return
         else:
             return getattr(super(Line, self), name)
@@ -95,6 +101,7 @@ class Image(models.Model):
     datetime = models.DateTimeField(unique=True)
     sidtime = models.ForeignKey(SidTime, null=True)
     intensity = models.BigIntegerField(null=True)
+    visibility = models.FloatField(null=True)
 
     def get_url(self):
         return 'sym/' + self.datetime.strftime('%Y/%m/%d/%Y-%m-%dT%H:%M:%S')
@@ -105,6 +112,9 @@ class Image(models.Model):
 
     def __unicode__(self):
         return unicode(self.datetime)
+
+    def magic_points(self):
+        return self.realpoint_set.prefetch_related('line__linevalues_set').prefetch_related('image')
 
 class RealPointGeneration(models.Model):
     pass

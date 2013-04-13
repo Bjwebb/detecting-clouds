@@ -5,14 +5,15 @@
     {{sidtime.time|time:"H:i"}}
 </h2>
 
-<div style="float: right">
+<table style="float: right">
 {% for image in sidtime.image_set.all %}
-<a href="{% url 'clouds.views.image' pk=image.pk %}">
-    {{image.datetime|date:"Y-m-d H:i"}}</a>
-{{image.intensity|intcomma}}
-<br/>
+<tr>
+<td><a href="{% url 'clouds.views.image' pk=image.pk %}">
+    {{image.datetime|date:"Y-m-d H:i"}}</a></td>
+<td style="padding-left: 1em; font-family:monospace">{{image.visibility|floatformat:"3"}}</td>
+<td style="padding-left: 1em; font-family:monospace; text-align: right">{{image.intensity|intcomma}}</td>
 {% endfor %}
-</div>
+</table>
 
 {% include 'clouds/image.html' with point_list=sidtime.magic_points self='clouds.views.sidtime' %}
 

@@ -16,6 +16,7 @@
 
 <p>
 Visibility: {{image.visibility|floatformat:"3"}}
+Sidtime: <a href="{% url 'clouds.views.sidtime' pk=image.sidtime.pk %}">{{image.sidtime.time|time:"H:i"}}</a>
 </p>
 
 {% include 'clouds/image.html' with point_list=image.magic_points self='clouds.views.image' %}

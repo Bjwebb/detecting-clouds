@@ -14,7 +14,8 @@ import StringIO
 
 class LineListView(ListView):
     paginate_by=100
-    order_fields = ['id', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
+    #order_fields = ['id', 'ratio', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
+    order_fields = ['id', 'max_flux', 'stddev_flux', 'sidpoint_count', 'realpoint_count']
 
     def get_queryset(self):
         queryset = Line.objects.prefetch_related('linevalues_set')
@@ -53,6 +54,7 @@ class LineListView(ListView):
             del query['page']
         return super(LineListView, self).get_context_data(
             order_fields=self.order_fields,
+            order=self.request.GET.get('order', ''),
             querystring=query.urlencode(),
             ends='ends' in self.request.GET,
             **context)

@@ -12,8 +12,8 @@ td { text-align: right }
 </div>
 
 
-<p>
-Order:
+<div>
+Order:</div>
 <ul style="display: inline">
 {% for field in order_fields %}
 <li style="display: inline; margin-right: 3em;">
@@ -21,6 +21,9 @@ Order:
     <a href="?order=-{{field}}">(reverse)</a>
 </li>
 {% endfor %}
+
+<p>
+<a href="?order={{order}}&ends">Show Beginning/End</a> (increases page load significantly)
 </p>
 
 {% load url from future %}

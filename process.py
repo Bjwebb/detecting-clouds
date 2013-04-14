@@ -24,7 +24,7 @@ from utils import join
 
 # Doing this to keep sextractor happy, see note in open_fits
 n32 = numpy.int32
-remove_saturated = numpy.vectorize(lambda x: n32(0) if x < n32(0) or x > n32(65000) else x)
+remove_saturated = numpy.vectorize(lambda x: n32(0) if x < n32(0) or x > n32(50000) else x)
 def flatten_max(max):
     return numpy.vectorize(lambda x: x if x < max else max)
 

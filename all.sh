@@ -4,7 +4,7 @@ rm -r 01 02 03/{01,03,04,05,06,07,08}
 cd ../../
 
 
-python process.py -l process.log -mv --log-images -c
+python process.py -l process.log -mv --log-images
 
 python generate_symlinks.py -sid out/fits_filtered/sym sid
 python process.py -mv -i sid --no-filter --no-output --total

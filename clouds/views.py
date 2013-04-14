@@ -320,7 +320,7 @@ class CloudsPlotView(DatePlotView, TemplateView):
             minpoints = int(self.request.GET['minpoints'])
         else: minpoints = 1
         datafilename = 'sum'+str(minpoints)+'data' + ('_infsig' if 'infsig' in self.request.GET else '')
-        return open(os.path.join('out', datafilename), 'r')
+        return open(os.path.join(settings.MEDIA_ROOT, 'out', datafilename), 'r')
 
 class AniView(ListView):
     template_name = 'clouds/ani.html'

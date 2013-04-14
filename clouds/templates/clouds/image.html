@@ -20,7 +20,7 @@ $(document).keydown(function(e) {
     {% for point in point_list %}
     {% if point.line %}
         {% if image %}
-            <a href="{% url 'clouds.views.line_realpoints_plot' line=point.line.pk %}?timestamp={{image.datetime|date:"U"}}&day">
+            <a href="{% url 'clouds.views.line_realpoints_plot' line=point.line.pk %}?timestamp={{image.datetime|date:"U"}}&day{%if not point.active%}&all{%endif%}">
         {% else %}
             <a href="{% url 'clouds.views.line_sidpoints_plot' line=point.line.pk %}?timestamp={{sidtime.gnuplot_datetime|date:"U"}}&day">
         {% endif %}

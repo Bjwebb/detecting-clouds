@@ -22,6 +22,8 @@ Fix inconsistency of naming of Line's fields
 
         ?
 Split out importing points from matching them 
+Add image left/right fuzzing for catmatch
+    to deal with http://localhost:8000/sidtime/424 (07:03)
 
 
         Minor UI
@@ -32,3 +34,4 @@ Plot filtered points in a different colour
 Calculate more errors:
     Calculate error bars for perimage values
     For realpoints based on their distance from the relevant sidpoint
+

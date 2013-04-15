@@ -17,7 +17,7 @@ python catmatch.py
 
 python process.py --sum-db --no-filter -i out/fits_filtered/sym -m
 
-./timeper.sh
+./timeper.sh > log/meta
 python perimage.py -m4 -o out 
 python perimage_todb.py
 

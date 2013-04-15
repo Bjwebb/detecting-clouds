@@ -50,6 +50,7 @@ class LineValues(models.Model):
     line = models.ForeignKey(Line)
     generation = models.ForeignKey(LineValuesGeneration)
     average_flux = models.FloatField(default=0.0)
+    median_flux = models.FloatField(default=0.0)
     max_flux = models.FloatField(default=0.0)
     stddev_flux = models.FloatField(default=0.0)
     realpoint_count = models.IntegerField(default=0)

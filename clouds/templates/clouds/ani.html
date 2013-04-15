@@ -1,12 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
+{% extends 'clouds/base.html' %}
+{% block head %}
 <style>
     #pic0 {
         display: block;
     }
 </style>
-<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
 <script> 
     n = null;
     i = 0;
@@ -71,10 +69,21 @@
      function onimagechange(img) {}
 </script>
 {% endblock %}
-</head>
-<body>
+{% endblock %}
+
+
+
+
 {% block body %}
 {% load url from future %}
+{% block before %}
+{% if line %}
+<h2>
+    <a href="{% url 'clouds.views.line' line %}">Line</a>
+</h2>
+{% endif %}
+{% endblock %}
+
 <p>
     <a href="javascript:go=true;tick()">Start</a>
     <a href="javascript:go=false;tick()">Stop</a>

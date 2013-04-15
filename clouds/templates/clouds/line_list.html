@@ -1,12 +1,16 @@
-<head>
+{% extends 'clouds/base.html' %}
+{% block head %}
 <style>
 td,th { padding-left: 1em }
 td { text-align: right }
 </style>
+{% endblock %}
 
-<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
-</head>
-<body>
+
+{% block body %}
+<h2> Lines</h2>
+
+
 <div style="position:fixed;right:0">
 <img src="" id="floatimg"/>
 </div>
@@ -21,8 +25,16 @@ Order:</div>
     <a href="?order=-{{field}}">(reverse)</a>
 </li>
 {% endfor %}
+<br/>
 
 <p>
+Filtering stage:
+<a href="?lvg=1">Remove Negative Fluxes</a>
+<a href="?lvg=2">Remove short lines</a>
+<a href="?lvg=3">Filter outliers</a>
+{{order}}
+<br/>
+
 <a href="?order={{order}}&ends">Show Beginning/End</a> (increases page load significantly)
 </p>
 
@@ -42,6 +54,7 @@ Order:</div>
     {% if line.ratio %}
         <th>Ratio</th>
     {% endif %}
+    <th></th>
     <th></th>
     <th>Beginning</th>
     <th>End</th>
@@ -71,6 +84,7 @@ Order:</div>
     <td>
         <a href="{% url 'clouds.views.line_realpoints_plot' line=line.pk %}">
             Realpoint Plot</a>
+    </td><td>
         <a href="{% url 'clouds.views.lineimg' pk=line.pk %}" onmouseover="$('#floatimg').attr('src', this.href)">
             Image</a>
     </td>
@@ -103,4 +117,4 @@ Order:</div>
 </table>
 
 {% include 'pagination.html' %}
-</body>
+{% endblock %}

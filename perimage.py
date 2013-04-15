@@ -76,7 +76,7 @@ def permonth(year, month, minimum_points=1, generation=1, outdir='out'):
                     ).annotate(Count('realpoint')
                     ).annotate(Sum('realpoint__flux')
                     ):
-        kwargs = dict(line__linevalues__generation__pk=4, line__linevalues__realpoint_count__gt=minimum_points)
+        kwargs = dict(line__linevalues__generation__pk=3, line__linevalues__realpoint_count__gt=minimum_points)
     
         realpoints = image.realpoint_set.filter(generation=generation, sidpoint__isnull=False,
             active=True, **kwargs)
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--outdir', '-o') 
     cl_args = parser.parse_args()
 
-    args = [ (year,month,minimum_points,generation,cl_args.outdir) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [1]  ]
+    args = [ (year,month,minimum_points,generation,cl_args.outdir) for year in [2011,2012] for month in range(1,13) for minimum_points in [1] for generation in [1]  ]
     if cl_args.multi:
         from multiprocessing import Pool
         pool = Pool(cl_args.multi)

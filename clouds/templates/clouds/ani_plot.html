@@ -46,7 +46,6 @@
 </script>
 {% endblock %}
 
-{% block body %}
+{% block before %}
 {% include 'clouds/plot.html' with clickfunction='plotclick' %}
-{{ block.super }}
 {% endblock %}

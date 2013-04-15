@@ -1,18 +1,22 @@
-<div>
+<div class="inlinelinks">
+<span>
 {% if page_obj.has_previous %}
-    <a href="?page=1&{{querystring}}">first</a>
-    <a href="?page={{ page_obj.previous_page_number }}&{{querystring}}">previous</a>
+    <span><a href="?page=1&{{querystring}}">first</a><span>
+    <span><a href="?page={{ page_obj.previous_page_number }}&{{querystring}}">previous</a></span>
 {% else %}
-first previous
+<span>first</span> <span>previous</span>
 {% endif %}
+</span>
 
-Page {{ page_obj.number }} of {{ paginator.num_pages }}.
+<span>Page {{ page_obj.number }} of {{ paginator.num_pages }} ({{paginator.per_page}} items out of {{paginator.count}})</span>
 
+<span>
 {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}&{{querystring}}">next</a>
-    <a href="?page={{ paginator.num_pages }}&{{querystring}}">last</a>
+    <span><a href="?page={{ page_obj.next_page_number }}&{{querystring}}">next</a></span>
+    <span><a href="?page={{ paginator.num_pages }}&{{querystring}}">last</a></span>
 {% else %}
-next last
+<span>next</span> <span>last</span>
 {% endif %}
+</span>
 
 </div>

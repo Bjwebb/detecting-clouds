@@ -20,7 +20,7 @@
     {% elif point.sidtime %}
         data-timestamp="{{point.sidtime.gnuplot_datetime|date:"U"}}" data-pk="{{point.sidtime.pk}}"
     {% endif %}
-        style="position: relative; height: 480px; width: 640px; left:900px;" id="{{point.pk}}">
+        style="position: relative; height: 480px; width: 640px; left:{{gpval.TERM_XSIZE}}px;" id="{{point.pk}}">
     {% if point.image %}
         <a href="{% url 'clouds.views.image' pk=point.image.pk %}">
     {% endif %}

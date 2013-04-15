@@ -1,4 +1,8 @@
+{% extends 'clouds/base.html' %}
+
+{% block body %}
 {% load url from future %}
 
-<a href="{% url 'clouds.views.lines' %}">Lines</a>
-<a href="{% url 'clouds.views.plot' %}">Perimage Plots</a>
+<h3><a href="{% url 'clouds.views.lines' %}">Lines</a></h3>
+<h3><a href="{% url 'clouds.views.plot' %}">Perimage Plots</a></h3>
+{% endblock %}

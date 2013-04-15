@@ -19,8 +19,9 @@ class LineListView(ListView):
 
     def get_queryset(self):
         queryset = Line.objects.prefetch_related('linevalues_set')
-        if not 'all' in self.request.GET:
-            queryset = queryset.filter(linevalues__generation__pk=2)
+        linevaluegeneration = int(self.request.GET.get('lvg', 3))
+        queryset = queryset.extra(select = {'linevaluegeneration': linevaluegeneration})
+        queryset = queryset.filter(linevalues__generation__pk=linevaluegeneration)
 
         if 'ratio' in self.request.GET:
             queryset = Line.objects.filter(max_flux__gt=0, stddev_flux__gt=0).extra(select={'ratio':'stddev_flux/max_flux'})
@@ -79,13 +80,12 @@ class PointsView(ListView):
         if 'line' in self.kwargs:
             queryset = queryset.filter(line__pk=self.kwargs['line'])
             line = Line.objects.get(pk=self.kwargs['line'])
-            print line.average_flux
-            print line.stddev_flux
 
         return queryset
 
     def get_context_data(self, **context):
-        context.update(closest=self.closest)
+        context.update(closest=self.closest,
+            line=self.kwargs.get('line'))
         return super(PointsView, self).get_context_data(**context)
 
 class PaginatedPointsView(PointsView):
@@ -129,13 +129,13 @@ class HourPointsView(PointsView):
 class PlotView(object):
     gnuplot_date_format = '%Y-%m-%d'
     gnuplot_column_no = 3
-    gnuplot_size = '1600,900'
+    gnuplot_size = '1400,700'
     gnuplot_lines = False
     gnuplot_timefmt = '%Y-%m-%d %H:%M:%S'
     extra_commands = ''
     context = {}
 
-    template_name = 'clouds/plot.html'
+    template_name = 'clouds/plot_wrapped.html'
 
     def get_context_data(self, **context):
         self.gnuplot_lines = 'lines' in self.request.GET
@@ -194,6 +194,7 @@ show variables all
                         'mouseover': 'm' in self.request.GET,
                       })
         context.update(self.context)
+        context.update(self.kwargs)
         return context
 
 class DatePlotView(PlotView):
@@ -331,7 +332,7 @@ class AniView(ListView):
 
 
 class DoubleViewMixin(object):
-    gnuplot_size = '900,900'
+    gnuplot_size = '700,700'
 
     def __init__(self, **kwargs):
         out = super(DoubleViewMixin, self).__init__(**kwargs)
@@ -356,7 +357,7 @@ class AniCloudsPlotView(DoubleViewMixin, CloudsPlotView):
 
 class AniRealPointsPlotView(DoubleViewMixin, RealPointsPlotView):
     secondary_class = DatePointsView
-    template_name = 'clouds/ani_plot_line_realpoints.html'
+    template_name = 'clouds/ani_plot_line.html'
 
     def get_context_data(self, **context):
         if 'zoom' in self.request.GET:
@@ -368,7 +369,7 @@ class AniRealPointsPlotView(DoubleViewMixin, RealPointsPlotView):
 
 class AniSidPointsPlotView(DoubleViewMixin, SidPlotView):
     secondary_class = HourPointsView
-    template_name = 'clouds/ani_plot_line_realpoints.html'
+    template_name = 'clouds/ani_plot_line.html'
 
 class TimeNavDetailView(DetailView):
     date_field = 'datetime'

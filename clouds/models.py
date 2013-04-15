@@ -22,6 +22,8 @@ class SidTime(models.Model):
         return self.sidpoint_set.prefetch_related('line__linevalues_set').prefetch_related('sidtime')
 
 class Line(models.Model):
+    linevaluegeneration = 3
+
     def first_sidpoint(self):
         return self.sidpoint_set.get(prev=None)
     def last_sidpoint(self):
@@ -34,7 +36,7 @@ class Line(models.Model):
             #except LineValues.DoesNotExist:
                 # Do this to make use of prefetch_related:
                 for linevalue in self.linevalues_set.all():
-                    if linevalue.generation_id == 4:
+                    if linevalue.generation_id == self.linevaluegeneration:
                         return getattr(linevalue, name)
                 return
         else:

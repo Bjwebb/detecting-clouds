@@ -1,5 +1,28 @@
 {% load url from future %}
-<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+<h2>
+{% if line %}
+    <a href="{% url 'clouds.views.line' line %}">Line</a>:
+    {% if year %}
+        {% if month %}<a href="{% url 'clouds.views.line_realpoints_plot' line=line year=year %}?{{querystring}}">{{year}}</a>{% else %}{{year}}{% endif %}
+    {% if month %}
+        / {% if day %}<a href="{% url 'clouds.views.line_realpoints_plot' line=line year=year month=month %}?{{querystring}}">{{month}}</a>{% else %}{{month}}{% endif %}
+    {% if day %}
+        / {{day}}
+    {% endif %}
+    {% endif %}
+    {% endif %}
+{% else %}
+    {% if year %}
+        {% if month %}<a href="{% url 'clouds.views.plot' year=year %}?{{querystring}}">{{year}}</a>{% else %}{{year}}{% endif %}
+    {% if month %}
+        / {% if day %}<a href="{% url 'clouds.views.plot' year=year month=month %}?{{querystring}}">{{month}}</a>{% else %}{{month}}{% endif %}
+    {% if day %}
+        / {{day}}
+    {% endif %}
+    {% endif %}
+    {% endif %}
+{% endif %}
+</h2>
 <script type="text/javascript">
 xmin = {{gpval.X_MIN}};
 xmax = {{gpval.X_MAX}};
@@ -30,10 +53,20 @@ $(function() {
     $('#clickablearea').css('width', term_xmax-term_xmin);
 });
 </script>
-<div>
-    <a href="?">Default</a>
-    <a href="?noerror">No Error Bars</a>
-    <a href="?noerror&lines">Lines</a>
+<div class="inlinelinks">
+    <span>
+    <span><a href="?">Default</a></span>
+    <span><a href="?noerror">No Error Bars</a></span>
+    <span><a href="?noerror&lines">Lines</a></span>
+    </span>
+    {% if line %}
+    <span>
+    <span>Without filtering:</span>
+    <span><a href="?">Default</a></span>
+    <span><a href="?noerror">No Error Bars</a></span>
+    <span><a href="?noerror&lines">Lines</a></span>
+    </span>
+    {% endif %}
 </div>
 <div style="position:relative" id="plotcontainer">
 <img src="{{MEDIA_URL}}{{imagesrc}}" id="plot" />

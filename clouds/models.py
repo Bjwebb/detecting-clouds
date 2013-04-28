@@ -30,7 +30,7 @@ class Line(models.Model):
         return self.sidpoint_set.get(sidpoint=None)
 
     def __getattr__(self, name):
-        if name in ['average_flux', 'max_flux', 'stddev_flux', 'realpoint_count', 'sidpoint_count']:
+        if name in ['average_flux', 'median_flux', 'max_flux', 'stddev_flux', 'realpoint_count', 'sidpoint_count']:
             #try:
                 #return getattr(self.linevalues_set.get(generation_id=4), name)
             #except LineValues.DoesNotExist:

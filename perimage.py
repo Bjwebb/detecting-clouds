@@ -130,7 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--outdir', '-o') 
     cl_args = parser.parse_args()
 
-    args = [ (year,month,minimum_points,generation,cl_args.outdir) for year in [2011,2012] for month in range(1,13) for minimum_points in [1] for generation in [1]  ]
+    args = [ (year,month,minimum_points,generation,cl_args.outdir) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20] for generation in [1]  ]
     if cl_args.multi:
         from multiprocessing import Pool
         pool = Pool(cl_args.multi)

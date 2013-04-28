@@ -1,11 +1,18 @@
+{% extends 'clouds/base.html' %}
+{% block body %}
 {% load url from future %}
 {% load humanize %}
-<body>
 <h2>
-    {{sidtime.time|time:"H:i"}}
+    SidTime {{sidtime.time|time:"H:i"}}
 </h2>
 
-<table style="float: right">
+<div style="float: right">
+<table>
+<tr>
+<th>Image</th>
+<th>Vis</th>
+<th>Intensity</th>
+</tr>
 {% for image in sidtime.image_set.all %}
 <tr>
 <td><a href="{% url 'clouds.views.image' pk=image.pk %}">
@@ -14,7 +21,7 @@
 <td style="padding-left: 1em; font-family:monospace; text-align: right">{{image.intensity|intcomma}}</td>
 {% endfor %}
 </table>
+</div>
 
 {% include 'clouds/image.html' with point_list=sidtime.magic_points self='clouds.views.sidtime' %}
-
-</body>
+{% endblock %}

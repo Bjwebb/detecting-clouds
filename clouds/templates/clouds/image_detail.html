@@ -1,8 +1,8 @@
-<body>
-
+{% extends 'clouds/base.html' %}
+{% block body %}
 {% load url from future %}
 <h2>
-
+    Image
     {% with image.datetime|date:"Y" as year and image.datetime|date:"m" as month and image.datetime|date:"d" as day %}
         <a href="{% url 'clouds.views.plot' year %}">
             {{year}}</a> /
@@ -20,5 +20,4 @@ Sidtime: <a href="{% url 'clouds.views.sidtime' pk=image.sidtime.pk %}">{{image.
 </p>
 
 {% include 'clouds/image.html' with point_list=image.magic_points self='clouds.views.image' %}
-
-</body>
+{% endblock %}

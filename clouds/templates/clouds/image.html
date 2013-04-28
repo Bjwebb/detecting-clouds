@@ -43,7 +43,9 @@ $(document).keydown(function(e) {
 <br/>
 <a href="{{ MEDIA_URL }}out/fits_filtered/{{object.get_url|urlencode}}.fits">FITS</a>
 <a href="{{ MEDIA_URL }}out/cat/{{object.get_url|urlencode}}.cat">cat</a>
+<br/>
 
+{% comment %}
 {% for point in point_list %}
 <div class="point_infobox" id="point_infobox_{{ realpoint.pk }}">
 {{point.x}} {{point.y}}
@@ -52,4 +54,4 @@ $(document).keydown(function(e) {
 {% endif %}
 </div>
 {% endfor %}
-
+{% endcomment %}

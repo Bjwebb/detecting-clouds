@@ -13,7 +13,7 @@ table {
     border-collapse: collapse;
     margin: 0.5em;
 }
-td,th {
+td, th {
     border: black solid 1px;
     padding-right: 0.5em
 }
@@ -31,6 +31,12 @@ td,th {
 {% endblock %}
 </head>
 <body>
+<div class="inlinelinks">
+{% load url from future %}
+Jump to: <span><a href="{% url 'clouds.views.lines' %}">Line List</a></span>
+<span><a href="{% url 'clouds.views.plot' %}">Perimage Plot</a></span>
+<span><a href="{% url 'clouds.views.random_view' %}">Random Images</a></span>
+</div>
 {% block body %}
 {% endblock %}
 </body>

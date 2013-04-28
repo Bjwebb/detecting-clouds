@@ -8,12 +8,11 @@ td { text-align: right }
 
 
 {% block body %}
-<h2> Lines</h2>
-
-
 <div style="position:fixed;right:0">
 <img src="" id="floatimg"/>
 </div>
+
+<h2> Lines</h2>
 
 
 <div>
@@ -29,10 +28,9 @@ Order:</div>
 
 <p>
 Filtering stage:
-<a href="?lvg=1">Remove Negative Fluxes</a>
-<a href="?lvg=2">Remove short lines</a>
-<a href="?lvg=3">Filter outliers</a>
-{{order}}
+<a href="?lvg=1&order={{order}}">Remove Negative Fluxes</a>
+<a href="?lvg=2&order={{order}}">Remove short lines</a>
+<a href="?lvg=3&order={{order}}">Filter outliers</a>
 <br/>
 
 <a href="?order={{order}}&ends">Show Beginning/End</a> (increases page load significantly)
@@ -42,12 +40,13 @@ Filtering stage:
 
 {% include 'pagination.html' %}
 
-<table>
+<table class="lines">
 <tr>
     <th>ID</th>
     <th>Sidpoints</th>
     <th>Realpoints</th>
-    <th>Average Flux</th>
+    <th>Mean Flux</th>
+    <th>Median Flux</th>
     <th>Max Flux</th>
     <th>StdDev Flux</th>
     {% with line_list|first as line %}
@@ -76,6 +75,7 @@ Filtering stage:
             {{ line.realpoint_count }}</a>
     </td>
     <td>{{ line.average_flux }}</td>
+    <td>{{ line.median_flux }}</td>
     <td>{{ line.max_flux }}</td>
     <td>{{ line.stddev_flux }}</td>
     {% if line.ratio %}
@@ -85,7 +85,7 @@ Filtering stage:
         <a href="{% url 'clouds.views.line_realpoints_plot' line=line.pk %}">
             Realpoint Plot</a>
     </td><td>
-        <a href="{% url 'clouds.views.lineimg' pk=line.pk %}" onmouseover="$('#floatimg').attr('src', this.href)">
+        <a href="{% url 'clouds.views.lineimg' pk=line.pk %}" onmouseover="$('#floatimg').attr('src', this.href).show()" onmouseout="$('#floatimg').hide()">
             Image</a>
     </td>
     <td>

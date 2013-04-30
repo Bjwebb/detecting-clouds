@@ -14,7 +14,6 @@ while s < sidday:
     sidtime.save()
     s += delta
 
-symdir = os.path.join('sym')
 for (path, subdirs, files) in os.walk('sym'):
     subdirs.sort()
     files.sort()

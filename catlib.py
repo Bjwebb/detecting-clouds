@@ -20,3 +20,14 @@ def parse_cat(file_name):
                               'width': df[12]-df[10],
                               'height': df[13]-df[11]
                             })
+
+import Image
+mask = Image.open('mask.png')
+mask_pixels = mask.load()
+
+def int_round(n):
+    if (n > 0): return int(n+0.5)
+    else: return int(n-0.5)
+
+def in_mask(point):
+    return mask_pixels[int_round(point['x'])-1, int_round(point['y']-1)][0] == 0

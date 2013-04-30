@@ -3,7 +3,7 @@ import os, datetime, math
 import subprocess
 
 from process import join
-from catlib import parse_cat
+from catlib import parse_cat, in_mask
 
 from django.core.management import setup_environ
 import clouds.settings
@@ -26,6 +26,8 @@ def catsid(sidtime, prev_points_list, rerun=False):
         return
 
     for i, point in points.iterrows():
+        if not in_mask(point):
+            continue
         with transaction.commit_manually():
             try:
                 #if i > 30:
@@ -48,8 +50,10 @@ def catsid(sidtime, prev_points_list, rerun=False):
                         try:
                             prev_point = SidPoint.objects.select_for_update().get(sidtime=prev_sidtime, idx=idx)
                         except SidPoint.DoesNotExist, e:
-                            #break
-                            raise e
+                            # Break if previous point is not in database
+                            # Should only happen due to not being within the mask
+                            break
+                            #raise e
                         competing_point = prev_point.next 
                         if competing_point: # then we have a collision
                             if competing_point.step >= i:
@@ -115,13 +119,11 @@ def worker(sidtimes, n, q_prev, q_next):
         catsid(sidtime, prev_points_list, True)
 
 if __name__ == '__main__':
-    subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
     from django.db import connection, transaction
     cursor = connection.cursor()
     cursor.execute("TRUNCATE TABLE clouds_sidpoint CASCADE")
     cursor.execute("TRUNCATE TABLE clouds_line CASCADE")
     transaction.commit_unless_managed()
-    subprocess.call(['python', 'manage.py', 'syncdb', '--all'])
 
     import argparse
     parser = argparse.ArgumentParser(description='Perform some calculations to each line, and add them to the database.')

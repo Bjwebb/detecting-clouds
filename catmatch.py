@@ -8,7 +8,7 @@ from django.core.management import setup_environ
 import clouds.settings
 setup_environ(clouds.settings)
 from clouds.models import Image, RealPoint, SidPoint, Line, SidTime, RealPointGeneration 
-from catlib import parse_cat
+from catlib import parse_cat, in_mask
 from django.db import reset_queries, transaction
 
 outdir = 'out'
@@ -27,6 +27,8 @@ def catmatch(image):
     taken_sidpoint_ids = {}
     realpoints = []
     for i, point in points.iterrows():
+        if not in_mask(point):
+            continue
         try:
             sidpoint = sidpoints.extra(select={
                 'd':'pow(x-{0}, 2) + pow(y-{1}, 2)'.format(

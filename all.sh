@@ -1,6 +1,6 @@
 python generate_symlinks.py www.mrao.cam.ac.uk sym
 cd sym/2011
-rm -r 01 02 03/{01,03,04,05,06,07,08}
+rm -r 01 02 03/{01,03,04,05,06,07,08,16,19,20,21,23,24}
 cd ../../
 
 

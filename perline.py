@@ -31,15 +31,18 @@ parser.add_argument('--generation', '-g', type=int, default=1)
 parser.add_argument('--reset', '-r', action='store_true')
 parser.add_argument('--negative', '-n', action='store_true')
 parser.add_argument('--line', '-l', type=int, default=0)
+parser.add_argument('--exclude-moon', '-e', action='store_true')
 args = parser.parse_args()
 generation_pk = args.generation
 
-def add_values_for_lines(bare_lines):
-    if args.count_only:
-        lines = bare_lines
-    else:
-        lines_ = bare_lines.filter(realpoint__active=True)
-        lines = lines_.annotate(
+def add_values_for_lines(lines):
+    if not args.count_only:
+        if args.exclude_moon:
+            lines = lines.filter(realpoint__active=True,
+                                 realpoint__image__moon=False)
+        else:
+            lines = lines.filter(realpoint__active=True)
+        lines = lines.annotate(
             Count('realpoint'),
             Avg('realpoint__flux'),
             Median('realpoint__flux'),
@@ -48,6 +51,7 @@ def add_values_for_lines(bare_lines):
             )
     if generation_pk > 1:
         lines = lines.filter(linevalues__generation_id=generation_pk-1)
+
     linevaluess = []
     generation, created = LineValuesGeneration.objects.get_or_create(pk=generation_pk)
     for line in lines:
@@ -123,7 +127,7 @@ def filter_line_worker(bounds):
 
 if __name__ == '__main__':
     from multiprocessing import Pool
-    pool = Pool(4)
+    pool = Pool(20)
 
     chunk_size = 1000
     chunks = [ (x,x+chunk_size) for x in range(0,

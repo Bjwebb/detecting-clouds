@@ -138,6 +138,13 @@ class DataProcessor():
             print path
         out_path = path[:-5]
         
+        if self.do_sum:
+            dt = dateutil.parser.parse(os.path.basename(path).split('.')[0])
+            if self.do_sum_db:
+                try:
+                    image = Image.objects.get(datetime=dt)
+                except Image.DoesNotExist:
+                    return
         data = open_fits(path) 
 
         if self.do_diff:
@@ -158,11 +165,9 @@ class DataProcessor():
             self.output(out_path, data)
         
         if self.do_sum:
-            dt = dateutil.parser.parse(os.path.basename(path).split('.')[0])
             intensity = numpy.sum(data, dtype=numpy.int64)
             print dt, intensity
             if self.do_sum_db:
-                image = Image.objects.get(datetime=dt)
                 image.intensity = intensity 
                 image.save()
 

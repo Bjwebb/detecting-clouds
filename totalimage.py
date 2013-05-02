@@ -9,7 +9,7 @@ import PIL.Image, PIL.ImageDraw
 minimum_points = 20
 generation=1
 
-kwargs = dict(line__linevalues__generation__pk=3, line__linevalues__realpoint_count__gt=minimum_points)
+kwargs = dict(line__linevalues__generation__pk=2, line__linevalues__realpoint_count__gt=minimum_points)
 realpoints = RealPoint.objects.filter(
 #realpoints = RealPoint.objects.filter(x__gt=0,x__lt=40,y__gt=0,y__lt=90,
 #realpoints = RealPoint.objects.filter(x__gt=190,x__lt=200,y__gt=190,y__lt=200,

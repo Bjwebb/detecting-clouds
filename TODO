@@ -22,6 +22,7 @@ Fix inconsistency of naming of Line's fields
         Wrap Up
 Automate creation of tmp directory
 Update settings.py.example file
+Expose option to show sextractor extracted images (e)
 
 
         ?

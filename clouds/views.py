@@ -72,6 +72,10 @@ class PointsView(ListView):
         if self.model == RealPoint:
             queryset = queryset.select_related('image')
             queryset = queryset.filter(generation=int(self.request.GET.get('g',1)))
+            if 'nomoon' in self.request.GET:
+                queryset = queryset.filter(image__moon=False)
+            if 'moon' in self.request.GET:
+                queryset = queryset.filter(image__moon=True)
         elif self.model == SidPoint:
             queryset = queryset.select_related('sidtime')
             if 'ends' in self.request.GET:
@@ -293,7 +297,6 @@ class SidPlotView(PointsPlotView):
 
     def get(self, request, hour=None, **kwargs):
         if 'timestamp' in request.GET and not hour:
-            print 'a'
             dt = datetime.datetime.fromtimestamp(float(self.request.GET['timestamp']))
             kwargs.update(hour=dt.time().hour)
             q = request.GET.copy()
@@ -319,7 +322,8 @@ class CloudsPlotView(DatePlotView, TemplateView):
         if 'minpoints' in self.request.GET:
             minpoints = int(self.request.GET['minpoints'])
         else: minpoints = 1
-        datafilename = 'sum'+str(minpoints)+'data' + ('_infsig' if 'infsig' in self.request.GET else '')
+        suffix = '-nomoon' if 'nomoon' in self.request.GET else '-hidemoon' if 'hidemoon' in self.request.GET else ''
+        datafilename = 'sum'+str(minpoints)+suffix+'data' + ('_infsig' if 'infsig' in self.request.GET else '')
         return open(os.path.join(settings.MEDIA_ROOT, 'out', datafilename), 'r')
 
 class AniView(ListView):
@@ -404,8 +408,10 @@ class RandomView(TemplateView):
 
     def get_context_data(self, **context):
         bins = []
-        for vmin,vmax in [ (0.0,0.05), (0.05, 0.1), (0.1,0.2), (0.2, 0.3), (0.3, 0.4), (0.4,1.0) ] :
+        for vmin,vmax in [ (0.0,0.01), (0.01, 0.05), (0.05, 0.1), (0.1,0.2), (0.2, 0.3), (0.3, 1.0) ] :
             images = Image.objects.filter(visibility__gte=vmin, visibility__lt=vmax)
+            if 'hidemoon' in self.request.GET:
+                images = images.filter(moon=False)
             count = images.count()
             if count > 0:
                 # http://stackoverflow.com/questions/9354127/how-to-grab-one-random-item-from-a-database-in-django-postgresql
@@ -429,7 +435,7 @@ def lineimg(request, pk):
         else:
             draw.line((prev_point.x, prev_point.y, point.x, point.y), fill='black')
     from django.db import connection
-    print connection.queries
+    #print connection.queries
     if 'real' in request.GET:
         for point in line.realpoint_set.all():
             draw.point((point.x, point.y), fill='blue')

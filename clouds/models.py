@@ -105,6 +105,7 @@ class Image(models.Model):
     sidtime = models.ForeignKey(SidTime, null=True)
     intensity = models.BigIntegerField(null=True)
     visibility = models.FloatField(null=True)
+    moon = models.BooleanField(default=False)
 
     def get_url(self):
         return 'sym/' + self.datetime.strftime('%Y/%m/%d/%Y-%m-%dT%H:%M:%S')
@@ -129,6 +130,7 @@ class RealPoint(Point):
     sidpoint = models.ForeignKey(SidPoint, null=True)
     image = models.ForeignKey(Image) 
     active = models.BooleanField(default=True)
+    # FIXME This field has inconsistent support
     generation = models.ForeignKey(RealPointGeneration, default=lambda: RealPointGeneration.objects.get_or_create(pk=1)[0].pk)
 
     def get_url(self):

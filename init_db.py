@@ -7,6 +7,10 @@ import datetime, os
 import dateutil.parser
 from utils import sidday, timedelta_as_time, get_sidereal_time
 
+try:
+    os.mkdir('tmp')
+except OSError: pass
+
 delta = datetime.timedelta(minutes=1)
 s = datetime.timedelta(0)
 while s < sidday:
@@ -23,4 +27,5 @@ for (path, subdirs, files) in os.walk('sym'):
         sidtime = SidTime.objects.filter(time__lt=get_sidereal_time(dt)).order_by('-time')[0]
         image = Image(datetime=dt, sidtime=sidtime)
         image.save()
+
 

@@ -25,7 +25,7 @@ $(document).keydown(function(e) {
             <a href="{% url 'clouds.views.line_sidpoints_plot' line=point.line.pk %}?timestamp={{sidtime.gnuplot_datetime|date:"U"}}&day">
         {% endif %}
     {% endif %}
-    <div class="point{% if point.line %} hasline{% endif %}" style="border:1px solid {%if point.pk == point_pk%}blue{%elif point.line%}{%if point.active or not image%}{%if point.line.realpoint_count > 20 %}green{%else%}black{%endif%}{%else%}orange{%endif%}{%else%}red{%endif%};
+    <div class="point{% if point.line %} hasline{% endif %}" style="border:1px solid {%if point.pk == point_pk%}blue{%elif point.line%}{%if point.active or not image%}{%if point.line.sidpoint_count > 200 %}green{%else%}black{%endif%}{%else%}orange{%endif%}{%else%}red{%endif%};
                 width:{{point.width}}px;
                 height:{{point.height}}px;
                 position:absolute;
@@ -36,6 +36,15 @@ $(document).keydown(function(e) {
     </a>
     {% endif %}
     {% endfor %}
+</div>
+<div>
+<pre>
+Green - Fine, point will be used
+Black - On line of less than 200 sidpoints
+Orange - Point specifically filtered out
+Red - Point not matched to line
+Blue - Point selected
+</pre>
 </div>
 <a href="javascript:$('.point').show()">all</a>
 <a href="javascript:$('.point').hide();$('.hasline').show()">with lines</a>

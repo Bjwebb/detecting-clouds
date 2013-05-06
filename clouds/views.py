@@ -19,7 +19,7 @@ class LineListView(ListView):
 
     def get_queryset(self):
         queryset = Line.objects.prefetch_related('linevalues_set')
-        linevaluegeneration = int(self.request.GET.get('lvg', 3))
+        linevaluegeneration = int(self.request.GET.get('lvg', 2))
         queryset = queryset.extra(select = {'linevaluegeneration': linevaluegeneration})
         queryset = queryset.filter(linevalues__generation__pk=linevaluegeneration)
 
@@ -30,7 +30,7 @@ class LineListView(ListView):
             try:
                 minpoints = int(self.request.GET['minpoints'])
             except KeyError:
-                minpoints = 20
+                minpoints = 200
             if self.request.GET['filter'] == 'sid':
                 queryset = queryset.filter(sidpoint_count__gt=minpoints) 
             elif self.request.GET['filter'] == 'real':
@@ -155,6 +155,9 @@ class PlotView(object):
         command_string = """
 set timefmt "{7}"
 set xdata time
+set xlabel "Date/Time"
+set ylabel "{8}"
+unset key
 set terminal png size {0} 
 set format x '{1}'
 {2}
@@ -168,7 +171,8 @@ show variables all
            (self.gnuplot_column_no.split(':')[0] if 'noerror' in self.request.GET and type(self.gnuplot_column_no) != int else self.gnuplot_column_no),
            ('w lines' if self.gnuplot_lines else ''),
            ('w errorbars' if ':' in str(self.gnuplot_column_no) and not 'noerror' in self.request.GET else ''),
-           self.gnuplot_timefmt
+           self.gnuplot_timefmt,
+           self.gnuplot_ylabel
         )
         image = hashlib.md5(command_string).hexdigest()+urlquote_plus(
                     self.request.META['PATH_INFO'].replace('/','-'))+'.png'
@@ -249,6 +253,7 @@ class PointsPlotView(PlotView, PointsView):
     plottype = ''
     sidplot = False
     gnuplot_column_no = '3:($3-$4):($3+$4)'
+    gnuplot_ylabel = 'Flux'
 
     def get_data_file(self):
         data_file = tempfile.NamedTemporaryFile()
@@ -311,6 +316,7 @@ class SidPlotView(PointsPlotView):
         return super(SidPlotView, self).get(request, **kwargs)
 
 class CloudsPlotView(DatePlotView, TemplateView):
+    gnuplot_ylabel = 'Visibility'
     
     def get(self, request, *args, **kwargs):
         if 'column' in request.GET:
@@ -321,7 +327,7 @@ class CloudsPlotView(DatePlotView, TemplateView):
     def get_data_file(self):
         if 'minpoints' in self.request.GET:
             minpoints = int(self.request.GET['minpoints'])
-        else: minpoints = 1
+        else: minpoints = 200
         suffix = '-nomoon' if 'nomoon' in self.request.GET else '-hidemoon' if 'hidemoon' in self.request.GET else ''
         datafilename = 'sum'+str(minpoints)+suffix+'data' + ('_infsig' if 'infsig' in self.request.GET else '')
         return open(os.path.join(settings.MEDIA_ROOT, 'out', datafilename), 'r')

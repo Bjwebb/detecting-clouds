@@ -22,9 +22,6 @@ def catmatch(image):
     if points is None:
         return
 
-    sidtime = image.sidtime
-    sidpoints = sidtime.sidpoint_set
-    taken_sidpoint_ids = {}
     realpoints = []
     for i, point in points.iterrows():
         if not in_mask(point):
@@ -39,7 +36,7 @@ def catmatch(image):
     RealPoint.objects.bulk_create(realpoints)
 
     cursor = connection.cursor()
-    cursor.execute('UPDATE clouds_realpoint r SET sidpoint_id=(SELECT id FROM clouds_sidpoint WHERE sidtime_id=%s AND x>r.x-5 AND x<r.x+5 AND y>r.y-5 AND y<r.y+5 AND POW(x-r.x,2)+POW(y-r.y,2) < 9 ORDER BY POW(x-r.x,2)+POW(y-r.y,2) ASC LIMIT 1) WHERE r.image_id=%s', (sidtime.id,image.id,))
+    cursor.execute('UPDATE clouds_realpoint r SET sidpoint_id=(SELECT id FROM clouds_sidpoint WHERE sidtime_id=%s AND x>r.x-5 AND x<r.x+5 AND y>r.y-5 AND y<r.y+5 AND POW(x-r.x,2)+POW(y-r.y,2) < 9 ORDER BY POW(x-r.x,2)+POW(y-r.y,2) ASC LIMIT 1) WHERE r.image_id=%s', (image.sidtime_id,image.id,))
     cursor.execute('SELECT r.id, sidpoint_id, POW(s.x-r.x,2)+POW(s.y-r.y,2) AS d FROM clouds_realpoint r JOIN clouds_sidpoint s ON s.id=r.sidpoint_id WHERE sidpoint_id IN (SELECT sidpoint_id FROM clouds_realpoint GROUP BY sidpoint_id HAVING COUNT(sidpoint_id)>1) AND r.image_id=%s ORDER BY d ASC', (image.id,))
     done = {}
     null = []
@@ -74,13 +71,9 @@ if __name__ == '__main__':
     pool = Pool(4)
 
     pool.map(catmatch_wrap, Image.objects.order_by('datetime'))
-    #import cProfile
-    #cProfile.run("catmatch_wrap(Image.objects.order_by('datetime')[0])")
-    #map(catmatch_wrap, Image.objects.order_by('datetime')[0:10])
 
     #import datetime
     #start = datetime.datetime(2011,8,23)
     #end = start + datetime.timedelta(days=1)
-    ##start = start + datetime.timedelta(hours=10)
     #pool.map(catmatch_wrap, Image.objects.filter(datetime__lt=end, datetime__gt=start))
 

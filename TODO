@@ -1,28 +1,21 @@
         Useful to note
 (lb) Beware final sidtime minute etc.
-    Actually very short and apparently no images in it
+    Actually very short and no points in it
 Currently finding 'sidtime' by rounding down....
 (lb) Sort out them smudges
 Investigate whether the Milky Way is acting like a cloud
 Look for breaks in lines, and check if sextractor is wrong
-Would be nice to know if gnuplots internal format counts leapseconds
+Leapseconds
     Although, there's only one leapsecond June 2012 in the relevant time period. One second is smaller than the exposure time
 
-
         Neatness
-Change perline to use slices rather than pk bounds
-Clean up hardcoded linevalue generations
-Stop using raw sql when it's not neccessary
-Use postgres truncate
-    actually if not dropping databases, must be carefull to vacuum, reindex and not assume pk=1 is first
-Clean up some of the early javascript variable names
-Deal with float BSCALE in a nicer way
-Fix inconsistency of naming of Line's fields
+Clean up javascript
+Remove realpoint generation
 
         Wrap Up
-Automate creation of tmp directory
 Update settings.py.example file
 Expose option to show sextractor extracted images (e)
+    and nomoon options...
 
 
         ?
@@ -33,6 +26,7 @@ Add image left/right fuzzing for catmatch
 
         Minor UI
 Plot filtered points in a different colour
+Change links to forms...
 
 
         Important

@@ -1,10 +1,9 @@
         Useful to note
 (lb) Beware final sidtime minute etc.
-    Actually very short and no points in it
-Currently finding 'sidtime' by rounding down....
+    Actually very short and no points in it [ FALSE ]
 (lb) Sort out them smudges
 Investigate whether the Milky Way is acting like a cloud
-Look for breaks in lines, and check if sextractor is wrong
+Currently finding 'sidtime' by rounding down....
 Leapseconds
     Although, there's only one leapsecond June 2012 in the relevant time period. One second is smaller than the exposure time
 

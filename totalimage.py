@@ -32,7 +32,19 @@ else:
         ).order_by()
     """
     cursor = connection.cursor()
-    cursor.execute('SELECT (floor(clouds_realpoint.y)) AS "iy", (floor(clouds_realpoint.x)) AS "ix", COUNT("clouds_realpoint"."id") AS "count", SUM("clouds_realpoint"."flux") AS "sum", AVG("clouds_realpoint"."flux") AS "avg", AVG(clouds_realpoint.flux/clouds_linevalues.median_flux) AS "deviation" FROM "clouds_realpoint" INNER JOIN "clouds_line" ON ("clouds_realpoint"."line_id" = "clouds_line"."id") INNER JOIN "clouds_linevalues" ON ("clouds_line"."id" = "clouds_linevalues"."line_id") INNER JOIN "clouds_sidpoint" ON ("clouds_realpoint"."sidpoint_id" = "clouds_sidpoint"."id") WHERE ("clouds_realpoint"."active" = True  AND "clouds_linevalues"."generation_id" = 3  AND "clouds_realpoint"."generation_id" = 1  AND "clouds_linevalues"."realpoint_count" > 200  AND "clouds_sidpoint"."id" IS NOT NULL) GROUP BY (floor(clouds_realpoint.y)), (floor(clouds_realpoint.x))')
+    cursor.execute("""SELECT (floor(clouds_realpoint.y)) AS "iy", (floor(clouds_realpoint.x)) AS "ix", COUNT("clouds_realpoint"."id") AS "count", SUM("clouds_realpoint"."flux") AS "sum", AVG("clouds_realpoint"."flux") AS "avg", AVG(clouds_realpoint.flux/clouds_linevalues.median_flux) AS "deviation"
+FROM "clouds_realpoint"
+INNER JOIN "clouds_line" ON ("clouds_realpoint"."line_id" = "clouds_line"."id")
+INNER JOIN "clouds_linevalues" ON ("clouds_line"."id" = "clouds_linevalues"."line_id")
+INNER JOIN "clouds_sidpoint" ON ("clouds_realpoint"."sidpoint_id" = "clouds_sidpoint"."id")
+INNER JOIN "clouds_image" ON ("clouds_realpoint"."image_id" = "clouds_image"."id")
+WHERE ("clouds_realpoint"."active" = True
+    AND "clouds_linevalues"."generation_id" = 3
+    AND "clouds_realpoint"."generation_id" = 1
+    AND "clouds_linevalues"."realpoint_count" > 200
+    AND "clouds_sidpoint"."id" IS NOT NULL
+    AND "clouds_image"."moon" = False)
+GROUP BY (floor(clouds_realpoint.y)), (floor(clouds_realpoint.x))""")
     realpoints = cursor.fetchall()
     pickle.dump(list(realpoints), open('totalimage.pickle', 'w'))
 #print list(realpoints.values('line').distinct())

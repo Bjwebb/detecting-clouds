@@ -22,4 +22,4 @@ python process.py --sum-db --no-filter -i out/fits_filtered/sym -m
 python perimage.py -m4 -o out 
 python perimage_todb.py
 cd out
-for i in 1-1 1-1-nomoon 20-1 20-1-nomoon 200-1 200-1-nomoon; do cat sum${i}/201* > sum${i}data; done 
+for f in perimage-*/; do cat $f/201* > `basename $f`-data; done

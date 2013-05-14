@@ -22,6 +22,7 @@ urlpatterns = patterns('clouds.views',
     url(r'^plot/(?P<year>\d+)/(?P<month>\d+)/(?P<day>\d+)/$', 'plot_day'), 
     url(r'^ani/(\d+)/(\d+)/(\d+)/$', 'ani'), 
     url(r'^random/$', 'random_view'), 
+    url(r'^random.tex$', 'random_view_tex'), 
 )
 
 from django.conf import settings

@@ -132,7 +132,7 @@ class HourPointsView(PointsView):
 
 class PlotView(object):
     gnuplot_date_format = '%Y-%m-%d'
-    gnuplot_column_no = 3
+    gnuplot_column_no = 4
     gnuplot_size = '1400,700'
     gnuplot_lines = False
     gnuplot_timefmt = '%Y-%m-%d %H:%M:%S'
@@ -281,6 +281,8 @@ class PointsPlotView(PlotView, PointsView):
                 data_file.write('\n')
                 #print point.flux, point.flux_error
         data_file.flush()
+        import shutil
+        shutil.copyfile(data_file.name, '/home/bjwebb/clouds/tmpdata')
         return data_file
 
     def get_context_data(self, **context):
@@ -329,7 +331,8 @@ class CloudsPlotView(DatePlotView, TemplateView):
             minpoints = int(self.request.GET['minpoints'])
         else: minpoints = 200
         suffix = '-nomoon' if 'nomoon' in self.request.GET else '-hidemoon' if 'hidemoon' in self.request.GET else ''
-        datafilename = 'sum'+str(minpoints)+suffix+'data' + ('_infsig' if 'infsig' in self.request.GET else '')
+        suffix += '-nofilter' if 'nofilter' in self.request.GET else ''
+        datafilename = 'perimage-'+str(minpoints)+suffix+'-data' + ('_infsig' if 'infsig' in self.request.GET else '')
         return open(os.path.join(settings.MEDIA_ROOT, 'out', datafilename), 'r')
 
 class AniView(ListView):
@@ -414,10 +417,13 @@ class RandomView(TemplateView):
 
     def get_context_data(self, **context):
         bins = []
-        for vmin,vmax in [ (0.0,0.01), (0.01, 0.05), (0.05, 0.1), (0.1,0.2), (0.2, 0.3), (0.3, 1.0) ] :
+#        for vmin,vmax in [ (0.0,0.01), (0.01, 0.05), (0.05, 0.1), (0.1,0.2), (0.2, 0.3), (0.3, 1.0) ] :
+        for vmin,vmax in [ (0.0,0.03), (0.03, 0.15), (0.15, 0.3), (0.3,0.6), (0.6, 0.9), (0.9, 1.2) ] :
             images = Image.objects.filter(visibility__gte=vmin, visibility__lt=vmax)
             if 'hidemoon' in self.request.GET:
                 images = images.filter(moon=False)
+            if 'onlymoon' in self.request.GET:
+                images = images.filter(moon=True)
             count = images.count()
             if count > 0:
                 # http://stackoverflow.com/questions/9354127/how-to-grab-one-random-item-from-a-database-in-django-postgresql
@@ -471,3 +477,4 @@ image = ImageView.as_view(model=Image)
 sidtime = ImageView.as_view(model=SidTime, date_field='time')
 
 random_view = RandomView.as_view()
+random_view_tex = RandomView.as_view(template_name='clouds/random.tex')

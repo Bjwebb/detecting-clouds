@@ -7,16 +7,9 @@ from django.db.models import Sum, Max, Count, Avg
 import os, sys
 from django.db import reset_queries, connection
 
-def scale(n): 
-    s = 10000000.0 # Arbitary scaling factor to make numbers easier to compare
-    try:
-        return n/s
-    except TypeError:
-        return 0.0
-
-
 connection.close()
 
+import math
 
 def permonth(year, month, minimum_points=1, outdir='out', moon=True, filtered=True):
 
@@ -27,60 +20,33 @@ def permonth(year, month, minimum_points=1, outdir='out', moon=True, filtered=Tr
         tomonth = month+1
         toyear = year
 
-    dirname = 'perimage-{0}{1}{2}'.format(minimum_points,
-            '' if moon else '-nomoon',
-            '' if filtered else '-nofilter')
-    try:
-        os.mkdir(os.path.join(outdir, dirname))
-    except OSError:
-        pass
-    data = open(os.path.join(outdir, dirname, str(year)+str(month).zfill(2)), 'w')
-
     lvg = (2 if filtered else 1) if moon else (3 if filtered else 4)
     q = Image.objects.filter(
                 datetime__gt=datetime.datetime(year,month,1),
                 datetime__lt=datetime.datetime(toyear,tomonth,1)
+                #datetime__lt=datetime.datetime(year,month,2)
                     ).order_by('datetime'
                     ).extra(select={
-                    'sidlinemaxflux':'SELECT SUM(lv.max_flux) FROM clouds_sidpoint s LEFT OUTER JOIN clouds_line l ON s.line_id=l.id LEFT OUTER JOIN  clouds_linevalues lv ON lv.line_id=l.id WHERE lv.generation_id={0} AND s.sidtime_id="clouds_image"."sidtime_id" AND lv.sidpoint_count>{1}'.format(lvg, minimum_points),
                     'sidlinemedianflux':'SELECT SUM(lv.median_flux) FROM clouds_sidpoint s LEFT OUTER JOIN clouds_line l ON s.line_id=l.id LEFT OUTER JOIN  clouds_linevalues lv ON lv.line_id=l.id WHERE lv.generation_id={0} AND s.sidtime_id="clouds_image"."sidtime_id" AND lv.sidpoint_count>{1}'.format(lvg, minimum_points),
+                    'sidlinemedianflux_squared':'SELECT SUM(lv.median_flux*lv.median_flux) FROM clouds_sidpoint s LEFT OUTER JOIN clouds_line l ON s.line_id=l.id LEFT OUTER JOIN  clouds_linevalues lv ON lv.line_id=l.id WHERE lv.generation_id={0} AND s.sidtime_id="clouds_image"."sidtime_id" AND lv.sidpoint_count>{1}'.format(lvg, minimum_points),
                     'realflux':'SELECT SUM(r.flux) FROM clouds_realpoint r INNER JOIN clouds_line l ON r.line_id=l.id INNER JOIN  clouds_linevalues lv ON lv.line_id=l.id WHERE lv.generation_id={0} AND r.image_id="clouds_image"."id" AND lv.sidpoint_count>{1} AND r.sidpoint_id IS NOT NULL AND r.active=true'.format(lvg, minimum_points),
+                    'realflux_squared':'SELECT SUM(r.flux*r.flux) FROM clouds_realpoint r INNER JOIN clouds_line l ON r.line_id=l.id INNER JOIN  clouds_linevalues lv ON lv.line_id=l.id WHERE lv.generation_id={0} AND r.image_id="clouds_image"."id" AND lv.sidpoint_count>{1} AND r.sidpoint_id IS NOT NULL AND r.active=true'.format(lvg, minimum_points),
                     }
                     )
     if not moon:
         q = q.filter(moon=False)
     for image in q: 
-        #kwargs = dict(line__linevalues__generation__pk=lvg, line__linevalues__sidpoint_count__gt=minimum_points)
-    
-        #realpoints = image.realpoint_set.filter(generation=generation, sidpoint__isnull=False,
-        #    active=True, **kwargs)
-        #realflux = realpoints.filter(generation=generation).aggregate(Sum('flux'))['flux__sum'] or 0.0
-        #sidlinemedianflux = image.sidtime.sidpoint_set.filter(**kwargs).aggregate(Sum('line__linevalues__median_flux'))['line__linevalues__median_flux__sum'] 
-        #sidlinemaxflux = image.sidtime.sidpoint_set.filter(**kwargs).aggregate(Sum('line__linevalues__max_flux'))['line__linevalues__max_flux__sum'] 
         realflux = image.realflux or 0.0
-        sidlinemaxflux = image.sidlinemaxflux or 0.0
+        realflux_squared = image.realflux_squared or 0.0
         sidlinemedianflux = image.sidlinemedianflux or 0.0
+        sidlinemedianflux_squared = image.sidlinemedianflux_squared or 0.0
         try:
-            out = [
-                # 1
-                image.datetime,
-                # 3
-                realflux/sidlinemaxflux,
-                # 4
-                realflux/sidlinemedianflux,
-                # 5
-                image.intensity,
-                # 6
-                realflux,
-                # 7
-                sidlinemedianflux,
-                # 8
-                sidlinemaxflux,
-            ]
-            data.write( u' '.join(map(unicode, out))+u'\n' )
-            data.flush()
+            visibility = realflux / sidlinemedianflux
+            err = math.sqrt(realflux_squared/(realflux**2) + sidlinemedianflux_squared/(sidlinemedianflux**2))
+            print image.datetime, visibility, err
         except ZeroDivisionError:
-            print image.id
+            pass
+            #print image.id
 
     reset_queries()
 
@@ -96,7 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('--outdir', '-o', default='out') 
     cl_args = parser.parse_args()
 
-    args = [ (year,month,minimum_points,cl_args.outdir,moon,filtered) for year in [2011,2012] for month in range(1,13) for minimum_points in [1,20,200] for moon in [True,False] for filtered in [True,False]  ]
+    args = [ (year,month,minimum_points,cl_args.outdir,moon,filtered) for year in [2011,2012] for month in range(1,13) for minimum_points in [200] for moon in [True] for filtered in [True]  ]
     if cl_args.multi:
         from multiprocessing import Pool
         pool = Pool(cl_args.multi)

@@ -28,6 +28,7 @@ parser.add_argument('--count-only', '-c', action='store_true')
 parser.add_argument('--filter', '-f', action='store_true')
 parser.add_argument('--line-filter', '-a', action='store_true')
 parser.add_argument('--generation', '-g', type=int, default=1)
+parser.add_argument('--prev_generation', '-p', type=int, default=0)
 parser.add_argument('--reset', '-r', action='store_true')
 parser.add_argument('--negative', '-n', action='store_true')
 parser.add_argument('--line', '-l', type=int, default=0)
@@ -50,7 +51,10 @@ def add_values_for_lines(lines):
             Max('realpoint__flux')
             )
     if generation_pk > 1:
-        lines = lines.filter(linevalues__generation_id=generation_pk-1)
+        if args.prev_generation > 0:
+            lines = lines.filter(linevalues__generation_id=args.prev_generation)
+        else:
+            lines = lines.filter(linevalues__generation_id=generation_pk-1)
 
     linevaluess = []
     generation, created = LineValuesGeneration.objects.get_or_create(pk=generation_pk)
@@ -128,7 +132,7 @@ def filter_line_worker(bounds):
 if __name__ == '__main__':
     from multiprocessing import Pool
     pool = Pool(20)
-
+    
     chunk_size = 1000
     chunks = [ (x,x+chunk_size) for x in range(0,
                                 Line.objects.order_by('-pk')[0].pk, chunk_size)]

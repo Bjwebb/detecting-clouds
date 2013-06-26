@@ -281,8 +281,8 @@ class PointsPlotView(PlotView, PointsView):
                 data_file.write('\n')
                 #print point.flux, point.flux_error
         data_file.flush()
-        import shutil
-        shutil.copyfile(data_file.name, '/home/bjwebb/clouds/tmpdata')
+        #import shutil
+        #shutil.copyfile(data_file.name, '/home/bjwebb/clouds/tmpdata')
         return data_file
 
     def get_context_data(self, **context):

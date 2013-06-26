@@ -1,12 +1,3 @@
-        Useful to note
-(lb) Beware final sidtime minute etc.
-    Actually very short and no points in it [ FALSE ]
-(lb) Sort out them smudges
-Investigate whether the Milky Way is acting like a cloud
-Currently finding 'sidtime' by rounding down....
-Leapseconds
-    Although, there's only one leapsecond June 2012 in the relevant time period. One second is smaller than the exposure time
-
         Neatness
 Clean up javascript
 Remove realpoint generation
@@ -27,10 +18,3 @@ Add image left/right fuzzing for catmatch
 Plot filtered points in a different colour
 Change links to forms...
 
-
-        Important
-Calculate more errors:
-    Calculate error bars for perimage values
-    For realpoints based on their distance from the relevant sidpoint
-
-FIXTMPDATA

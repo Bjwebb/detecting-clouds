@@ -1,0 +1,11 @@
+\begin{figure}{% for bin in bins %}{% if forloop.counter0|divisibleby:2 %}
+    \makebox[\textwidth][c]{{% else %}{% endif %}
+        \begin{subfigure}[b]{0.5\textwidth}
+            \includegraphics[width=\textwidth]{/home/bjwebb/out/png/{{bin.image.get_url}}.png}
+            \caption{\({{bin.min}} \leq {{bin.image.visibility|floatformat:"3"}} < {{bin.max}} \) }
+        \end{subfigure}{% if forloop.counter0|divisibleby:2 %}%
+        ~{% else %}
+    }{% endif %}{% endfor %}
+    \caption{Random selection of images from each bin.}
+    \label{fig:random}
+\end{figure}

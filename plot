@@ -99,13 +99,17 @@ set boxwidth binwidth
 bin(x,width)=width*floor(x/width) + binwidth/2.0
 plot 'out/moondiff' using (bin($1,binwidth)):(1.0) smooth freq with boxes
 
+set terminal eps size 6,3 monochrome dashed
 set output 'out/plot/perimage_err.eps'
 set xlabel 'Fractional visibility error'
 binwidth=0.01
 set boxwidth binwidth
 plot 'out/perimage_err' using (bin($4,binwidth)):(1.0) smooth freq with boxes
+
 set xlabel 'Visibility error'
 set output 'out/plot/perimage_err2.eps'
+binwidth=0.001
+set boxwidth binwidth
 plot 'out/perimage_err' using (bin($4*$3,binwidth)):(1.0) smooth freq with boxes
 
 
